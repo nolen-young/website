@@ -246,6 +246,53 @@ In Azure Portal &rarr; Static Web Apps &rarr; Configuration &rarr; Application s
 
 ---
 
+## 🔒 Security Architecture & Admin Passcode Proposals
+
+### ⚠️ Client-Side vs. Server-Side Security Analysis
+In Next.js, environment variables prefixed with `NEXT_PUBLIC_` (such as `NEXT_PUBLIC_ADMIN_PASSCODE`) are baked directly into the static JavaScript bundles sent to the client browser at build time.
+
+- **Soft Barrier (Current Setup)**: Client-side PIN validation (`if (input === passcode)`) stops casual wedding guests from viewing `/wedding/admin`.
+- **Bundle Visibility**: However, a technical user or bot inspecting the site's compiled JavaScript files can grep/search for the passcode string inside the bundle.
+
+---
+
+### 🛡️ 3 Proposals for 100% Zero-Trust Admin Security
+
+To completely eliminate passcode exposure from JavaScript bundles, choose one of the following 3 security models:
+
+#### Proposal A: Serverless Function PIN Verification (Server-Side)
+- **How it works**:
+  1. Remove the `NEXT_PUBLIC_` prefix and rename the environment variable to `ADMIN_PASSCODE` in your hosting dashboard.
+  2. Create a serverless function endpoint (e.g. `functions/api/admin-login.ts` on Cloudflare Pages or `/api/admin-login` on Next.js server):
+     ```typescript
+     export const onRequestPost: PagesFunction<{ ADMIN_PASSCODE: string }> = async (context) => {
+       const { passcode } = await context.request.json();
+       if (passcode === context.env.ADMIN_PASSCODE) {
+         return new Response(JSON.stringify({ success: true, token: "SECURE_SESSION_TOKEN" }), {
+           headers: { "Content-Type": "application/json" }
+         });
+       }
+       return new Response(JSON.stringify({ success: false, error: "Invalid passcode" }), { status: 401 });
+     };
+     ```
+  3. The client-side dashboard sends a POST request with the entered PIN. The real passcode is stored **only on the server** and is never exposed in client JS bundles.
+
+#### Proposal B: Google Apps Script Backend Auth (Integrated with Proposal 1)
+- **How it works**:
+  1. When using the Google Sheets backend (Proposal 1), the admin PIN check occurs inside `Code.gs` on Google's private servers.
+  2. The website frontend submits the entered PIN over HTTPS to the Google Apps Script endpoint.
+  3. Google Apps Script checks the PIN against your private Google Sheet setting and returns the authorized guest list.
+  4. **Result**: Zero passcode reference in client JS bundles.
+
+#### Proposal C: Cloudflare Access / Edge Protection ($0/month)
+- **How it works**:
+  1. In Cloudflare Dashboard &rarr; **Zero Trust** &rarr; **Access** &rarr; **Applications**, create an Access Application for path `yourdomain.com/wedding/admin`.
+  2. Set an access policy (e.g., require One-Time PIN sent to `nolen@example.com` or require a master password).
+  3. Cloudflare intercepts all requests to `/wedding/admin` **at the edge before serving any HTML or JS**.
+  4. **Result**: Unauthenticated users or bots cannot even load the `/wedding/admin` page.
+
+---
+
 ## 📋 Operational Guide: Guest List Management
 
 ### How to Print Personal Invitation Links & QR Codes
@@ -259,10 +306,3 @@ You can generate individual personalized invitation URLs for your mail invitatio
 1. **QR / Custom Link**: Opening their invitation QR code automatically identifies the guest and pre-fills their name and +1 status.
 2. **Manual Website Search**: Guests can also visit `/wedding/rsvp` directly, type their name, and select their matching invitation.
 
----
-
-## 🔒 Security Best Practices
-
-1. **Admin Passcode**: Change `NEXT_PUBLIC_ADMIN_PASSCODE` in your Cloudflare Pages dashboard settings to a private PIN.
-2. **Locking Session**: Click the **Lock** button in `/wedding/admin` to end your session.
-3. **Data Backup**: Use the **Export CSV** button in `/wedding/admin` periodically to back up your guest responses locally.
