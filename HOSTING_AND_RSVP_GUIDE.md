@@ -1,7 +1,7 @@
-# 💒 Wedding Subsite Architecture & RSVP Hosting Guide
+# 💒 Wedding Subsite & RSVP Backend Setup Guide
 **For Nolen & Syrel's Wedding Website**
 
-This document provides a detailed breakdown of the technical architecture, deployment options, and backend RSVP management options for Nolen & Syrel's wedding subsite.
+This document provides a comprehensive guide on how the RSVP system works, along with exact, step-by-step setup instructions for each hosting & backend proposal so you can choose the best operating model for your wedding.
 
 ---
 
@@ -9,112 +9,260 @@ This document provides a detailed breakdown of the technical architecture, deplo
 
 We have created a personal wedding subsite at `/wedding` and an interactive RSVP portal at `/wedding/rsvp` (plus an Admin Dashboard at `/wedding/admin`).
 
-### Key Features Built:
-1. **Wedding Homepage (`/wedding`)**:
-   - **Hero Section**: Couple names, date (October 17, 2026), location (Friday Harbor, WA), and real-time live countdown timer.
-   - **Our Story**: Interactive timeline and fun facts about Nolen & Syrel.
-   - **Schedule of Events**: Complete weekend timeline with dress codes, locations, and downloadable `.ics` calendar files.
-   - **Venue & Travel**: Venue maps, airport advice, state ferry notice, and hotel room block copyable discount codes.
-   - **Wedding Party**: Bridesmaids & groomsmen cards.
-   - **Registry**: Honeymoon & home fund progress cards + store registry links.
-   - **FAQs**: Accordion answering dress code, +1s, kids, and travel questions.
-
-2. **RSVP Engine (`/wedding/rsvp`)**:
-   - **Personalized Links & QR Codes**: Supports URLs like `/wedding/rsvp?code=NOLEN-SYREL-001` to pre-fill guest details automatically.
-   - **Name Lookup**: Guests can search by First & Last Name against the official guest list.
-   - **Guest Validation**: Only guests on the guest list are allowed to RSVP.
-   - **+1 Handling**: Automatically checks if the guest is allowed a +1. Prompts for +1 attendance, first/last name, meal preference, and dietary needs.
-   - **Catering Menu**: Primary guest & +1 select entrée choice (Filet Mignon, Pacific Salmon, Truffle Risotto, Roasted Chicken) + allergy/dietary fields.
-   - **Song Request & Note**: Captures dance floor song requests and personal messages for the couple.
-   - **Digital Ticket & Confetti**: Visual guest pass with mock QR code + capability for guests to re-edit responses anytime.
-
-3. **Admin Dashboard (`/wedding/admin`)**:
-   - Live RSVP response rate, headcount tracking (primary + plus-ones), meal totals summary, guest table filtering, CSV export, and individual guest invitation link generator.
+### How the Local Demo Works Right Now:
+- The website is built with **Next.js App Router** configured for static export (`output: 'export'`).
+- Currently, client-side state is handled by `src/lib/rsvpService.ts`, which uses browser `localStorage` as a fallback.
+- **Admin Passcode**: Protected by a PIN security screen on `/wedding/admin` (default passcode: `2027`, configurable via `NEXT_PUBLIC_ADMIN_PASSCODE`).
 
 ---
 
-## 🛠️ Architecture & Hosting Options (Cost & UX Comparison)
+## 🛠️ Proposal 1: Google Sheets Webhook (Recommended • $0/month)
 
-Since the website is currently deployed on **Cloudflare Pages**, and Nolen has access to **Microsoft Azure credits** and **GitHub perks**, here are the top 3 recommended backend approaches for hosting and managing RSVPs:
+### Why This Is the Best Option:
+- **100% Free Forever**: Zero hosting or database costs.
+- **Best Couple Experience**: Nolen and Syrel can view, add guests, and monitor RSVPs live in a Google Sheet from their phones or laptops without needing SQL or database admin tools.
+- **Easy Mail Invite Import**: Copy & paste guest lists directly from Excel/Google Sheets.
 
-### Option 1: Cloudflare Pages + Google Sheets Webhook (Recommended • $0/month)
-* **How it works**:
-  - The website remains 100% static on Cloudflare Pages (blazing fast, global CDN).
-  - A small Google Apps Script webhook bridges the website RSVP form directly to a private **Google Sheet**.
-  - When a guest submits their RSVP, it updates the Google Sheet in real time.
-* **Why it's great**:
-  - **Zero Cost**: Completely free ($0/mo).
-  - **Best Couple UX**: Nolen and Syrel can view, filter, and edit their guest list directly in a spreadsheet on their phones or laptops without needing SQL or database admin tools.
-  - **Easy Invitation Import**: Trivial to paste guest names and generate invitation codes.
+### Step-by-Step Implementation:
 
-### Option 2: Azure Static Web Apps + Azure Table Storage / Functions (Using Azure Credits • $0)
-* **How it works**:
-  - Deploy the Next.js app to **Azure Static Web Apps (SWA)**.
-  - Attach a managed C# or Node.js **Azure Function** backend.
-  - Store RSVPs in **Azure Table Storage** or **Azure Cosmos DB** (NoSQL).
-* **Why it's great**:
-  - Leverages Microsoft employee Azure credits ($150/mo credit).
-  - Production-grade enterprise SLA, automated GitHub Actions deployment.
+#### 1. Create the Google Sheet
+1. Create a new Google Sheet named **Nolen & Syrel Wedding RSVPs**.
+2. Name the first tab **`Guests`** and create the following headers in Row 1:
+   ```
+   Code | FirstName | LastName | Email | AllowedPlusOne | Status | Attending | Entree | DietaryNotes | PlusOneAttending | PlusOneFirstName | PlusOneLastName | PlusOneEntree | PlusOneDietary | Note | UpdatedAt
+   ```
+3. Add your guest list below Row 1 (e.g. `NOLEN-SYREL-001 | Alex | Rivers | alex@example.com | TRUE | Pending | ...`).
 
-### Option 3: Cloudflare Pages + Cloudflare D1 (Serverless SQLite • $0/month)
-* **How it works**:
-  - Deploy Cloudflare Pages Functions (`/api/rsvp.ts`) backed by **Cloudflare D1**.
-  - D1 is a serverless SQL database running at the edge.
-* **Why it's great**:
-  - Everything stays within the Cloudflare ecosystem.
-  - 100,000 free database write operations per day.
+#### 2. Add Google Apps Script Webhook
+1. In your Google Sheet, click **Extensions** &rarr; **Apps Script**.
+2. Replace all code in `Code.gs` with the following paste-ready script:
+
+```javascript
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Guests");
+    const rows = sheet.getDataRange().getValues();
+    
+    const guestCode = data.code ? data.code.trim().toUpperCase() : "";
+    const guestId = data.id || "";
+    
+    let rowIndex = -1;
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString().toUpperCase() === guestCode || rows[i][0].toString() === guestId) {
+        rowIndex = i + 1; // 1-indexed row number
+        break;
+      }
+    }
+    
+    if (rowIndex === -1) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, error: "Guest code not found" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Update RSVP response columns
+    sheet.getRange(rowIndex, 6).setValue("Responded"); // Status
+    sheet.getRange(rowIndex, 7).setValue(data.attending ? "Yes" : "No"); // Attending
+    sheet.getRange(rowIndex, 8).setValue(data.mealPreference || ""); // Entree
+    sheet.getRange(rowIndex, 9).setValue(data.dietaryRestrictions || ""); // DietaryNotes
+    
+    if (data.plusOne) {
+      sheet.getRange(rowIndex, 10).setValue(data.plusOne.attending ? "Yes" : "No");
+      sheet.getRange(rowIndex, 11).setValue(data.plusOne.firstName || "");
+      sheet.getRange(rowIndex, 12).setValue(data.plusOne.lastName || "");
+      sheet.getRange(rowIndex, 13).setValue(data.plusOne.mealPreference || "");
+      sheet.getRange(rowIndex, 14).setValue(data.plusOne.dietaryRestrictions || "");
+    }
+    
+    sheet.getRange(rowIndex, 15).setValue(data.message || ""); // Note
+    sheet.getRange(rowIndex, 16).setValue(new Date().toISOString()); // UpdatedAt
+    
+    return ContentService.createTextOutput(JSON.stringify({ success: true }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+```
+
+#### 3. Deploy the Web App
+1. Click **Deploy** &rarr; **New deployment**.
+2. Select type: **Web app**.
+3. **Execute as**: `Me (your-email@gmail.com)`.
+4. **Who has access**: `Anyone`.
+5. Click **Deploy**, authorize permissions, and copy the **Web App URL** (e.g., `https://script.google.com/macros/s/.../exec`).
+
+#### 4. Connect to Cloudflare Pages
+In Cloudflare Pages dashboard &rarr; Settings &rarr; Environment Variables:
+- `NEXT_PUBLIC_RSVP_WEBHOOK_URL` = `https://script.google.com/macros/s/.../exec`
+- `NEXT_PUBLIC_ADMIN_PASSCODE` = `your-secret-pin`
 
 ---
 
-## 🚀 How to Run the Local Demo
+## 🛠️ Proposal 2: Cloudflare Pages + Cloudflare D1 (Serverless SQLite • $0/month)
 
-To preview the website locally on your NixOS machine:
+### Overview:
+Cloudflare D1 is a serverless SQL database natively integrated into Cloudflare Pages.
 
+### Step-by-Step Implementation:
+
+#### 1. Create Cloudflare D1 Database
+In your terminal (using Wrangler CLI):
 ```bash
-# 1. Enter the nix environment (or rely on direnv)
-nix develop
-
-# 2. Start Next.js development server
-npm run dev
+npx wrangler d1 create wedding-rsvps
 ```
 
-Then open your browser to:
-- **Wedding Homepage**: `http://localhost:3000/wedding`
-- **RSVP Portal**: `http://localhost:3000/wedding/rsvp`
-- **Sample Personalized Link**: `http://localhost:3000/wedding/rsvp?code=NOLEN-SYREL-001`
-- **Admin RSVP Dashboard**: `http://localhost:3000/wedding/admin`
+#### 2. Define SQL Schema (`schema.sql`)
+```sql
+CREATE TABLE IF NOT EXISTS guests (
+  id TEXT PRIMARY KEY,
+  code TEXT UNIQUE NOT NULL,
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  email TEXT,
+  allowed_plus_one INTEGER DEFAULT 0,
+  rsvp_submitted INTEGER DEFAULT 0,
+  attending INTEGER,
+  meal_preference TEXT,
+  dietary_restrictions TEXT,
+  plus_one_attending INTEGER,
+  plus_one_first_name TEXT,
+  plus_one_last_name TEXT,
+  plus_one_meal_preference TEXT,
+  plus_one_dietary_restrictions TEXT,
+  message TEXT,
+  updated_at TEXT
+);
+```
+
+Execute schema against D1:
+```bash
+npx wrangler d1 execute wedding-rsvps --file=./schema.sql
+```
+
+#### 3. Create Cloudflare Pages Function (`functions/api/rsvp.ts`)
+```typescript
+interface Env {
+  DB: D1Database;
+}
+
+export const onRequestPost: PagesFunction<Env> = async (context) => {
+  const data = await context.request.json();
+  const db = context.env.DB;
+
+  await db.prepare(`
+    UPDATE guests SET
+      rsvp_submitted = 1,
+      attending = ?,
+      meal_preference = ?,
+      dietary_restrictions = ?,
+      plus_one_attending = ?,
+      plus_one_first_name = ?,
+      plus_one_last_name = ?,
+      plus_one_meal_preference = ?,
+      plus_one_dietary_restrictions = ?,
+      message = ?,
+      updated_at = datetime('now')
+    WHERE code = ? OR id = ?
+  `).bind(
+    data.attending ? 1 : 0,
+    data.mealPreference || null,
+    data.dietaryRestrictions || null,
+    data.plusOne?.attending ? 1 : 0,
+    data.plusOne?.firstName || null,
+    data.plusOne?.lastName || null,
+    data.plusOne?.mealPreference || null,
+    data.plusOne?.dietaryRestrictions || null,
+    data.message || null,
+    data.code,
+    data.id
+  ).run();
+
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { "Content-Type": "application/json" }
+  });
+};
+```
+
+#### 4. Bind D1 to Cloudflare Pages
+In Cloudflare Dashboard &rarr; Workers & Pages &rarr; Your Project &rarr; Settings &rarr; Functions &rarr; **D1 database bindings**:
+- Variable name: `DB`
+- D1 database: `wedding-rsvps`
 
 ---
 
-## 📁 File Structure Reference
+## 🛠️ Proposal 3: Azure Static Web Apps + Azure Table Storage (Microsoft Perks)
 
+### Overview:
+Leverages your Microsoft employee Azure credits ($150/mo credit) using Azure Static Web Apps (SWA) with managed Azure Functions and Azure Table Storage NoSQL.
+
+### Step-by-Step Implementation:
+
+#### 1. Create Azure Storage Account
+1. Open the [Azure Portal](https://portal.azure.com).
+2. Create a **Storage Account** resource (e.g. `nolenweddingstorage`).
+3. Under Data Storage &rarr; Tables, create a table named `rsvps`.
+4. Copy the **Connection String** from Access Keys.
+
+#### 2. Azure Function Endpoint (`api/rsvp/index.ts`)
+```typescript
+import { AzureFunction, Context, HttpRequest } from "@azure/functions";
+import { TableClient } from "@azure/data-tables";
+
+const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
+const client = TableClient.fromConnectionString(connectionString, "rsvps");
+
+const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+  const data = req.body;
+  const entity = {
+    partitionKey: "Wedding2027",
+    rowKey: data.code.toUpperCase(),
+    attending: data.attending,
+    mealPreference: data.mealPreference || "",
+    dietaryRestrictions: data.dietaryRestrictions || "",
+    plusOneFirstName: data.plusOne?.firstName || "",
+    plusOneLastName: data.plusOne?.lastName || "",
+    plusOneMeal: data.plusOne?.mealPreference || "",
+    message: data.message || "",
+    updatedAt: new Date().toISOString()
+  };
+
+  await client.upsertEntity(entity, "Replace");
+
+  context.res = {
+    status: 200,
+    body: { success: true }
+  };
+};
+
+export default httpTrigger;
 ```
-src/
-├── app/
-├── page.tsx               # Main personal homepage with wedding feature banner
-│   └── wedding/
-│       ├── page.tsx           # Main Wedding Subsite (Hero, Story, Schedule, Venue, etc.)
-│       ├── rsvp/
-│       │   └── page.tsx       # Dedicated RSVP Portal
-│       └── admin/
-│           └── page.tsx       # RSVP Admin Dashboard & CSV Exporter
-├── components/
-│   └── wedding/
-│       ├── Navbar.tsx         # Sticky navigation with mobile menu
-│       ├── HeroSection.tsx    # Romantic hero header
-│       ├── CountdownTimer.tsx # Live countdown to Oct 17, 2026
-│       ├── StorySection.tsx   # Timeline & fun facts
-│       ├── ScheduleSection.tsx# Schedule of events + .ics calendar export
-│       ├── VenueSection.tsx   # Venue details, hotel blocks & ferry notice
-│       ├── PartySection.tsx   # Wedding party bios
-│       ├── RegistrySection.tsx# Honeymoon funds & registries
-│       ├── FaqSection.tsx     # Categorized FAQ accordion
-│       ├── RsvpForm.tsx       # Multi-step guest lookup, +1, meal & song flow
-│       ├── RsvpModal.tsx      # Modal wrapper for RSVP
-│       └── Footer.tsx         # Romantic footer & admin link
-├── data/
-│   ├── weddingConfig.ts   # Centralized text, schedule, venue & meal config
-│   └── guestList.ts       # Guest schema & sample dataset
-└── lib/
-    └── rsvpService.ts     # Client state & storage service layer
-```
+
+#### 3. Configure Azure SWA Environment Variable
+In Azure Portal &rarr; Static Web Apps &rarr; Configuration &rarr; Application settings:
+- `AZURE_STORAGE_CONNECTION_STRING` = `[Your Connection String]`
+- `NEXT_PUBLIC_ADMIN_PASSCODE` = `[Your PIN]`
+
+---
+
+## 📋 Operational Guide: Guest List Management
+
+### How to Print Personal Invitation Links & QR Codes
+Each guest on your guest list has a unique code (e.g., `NOLEN-SYREL-001`).
+
+You can generate individual personalized invitation URLs for your mail invitations:
+- **Format**: `https://your-website.com/wedding/rsvp?code=NOLEN-SYREL-001`
+- **QR Code**: Paste this URL into any QR code generator (e.g. Canva or QR Code Generator) to print directly on physical paper invitations!
+
+### How Guests Experience RSVP
+1. **QR / Custom Link**: Opening their invitation QR code automatically identifies the guest and pre-fills their name and +1 status.
+2. **Manual Website Search**: Guests can also visit `/wedding/rsvp` directly, type their name, and select their matching invitation.
+
+---
+
+## 🔒 Security Best Practices
+
+1. **Admin Passcode**: Change `NEXT_PUBLIC_ADMIN_PASSCODE` in your Cloudflare Pages dashboard settings to a private PIN.
+2. **Locking Session**: Click the **Lock** button in `/wedding/admin` to end your session.
+3. **Data Backup**: Use the **Export CSV** button in `/wedding/admin` periodically to back up your guest responses locally.
