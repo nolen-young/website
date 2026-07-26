@@ -6,7 +6,6 @@ import {
   Search,
   CheckCircle2,
   XCircle,
-  Sparkles,
   UserPlus,
   Utensils,
   Music,
@@ -34,14 +33,12 @@ interface RsvpFormProps {
 }
 
 export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProps) {
-  // Step State: 1 = Lookup, 2 = Attendance & Meal, 3 = +1 Details (if eligible), 4 = Music & Note, 5 = Confirmation
   const [step, setStep] = useState<number>(1);
   const [nameQuery, setNameQuery] = useState<string>(initialName || "");
   const [codeQuery, setCodeQuery] = useState<string>(initialCode || "");
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [searchResults, setSearchResults] = useState<Guest[]>([]);
   const [lookupError, setLookupError] = useState<string | null>(null);
-  const [isSearching, setIsSearching] = useState<boolean>(false);
 
   // Form Fields
   const [attending, setAttending] = useState<boolean>(true);
@@ -59,7 +56,6 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
   const [songRequest, setSongRequest] = useState<string>("");
   const [message, setMessage] = useState<string>("");
 
-  // Auto Lookup on Mount if initialCode or initialName supplied
   useEffect(() => {
     if (initialCode) {
       const match = findGuestByCode(initialCode);
@@ -77,7 +73,6 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
     setSelectedGuest(guest);
     setLookupError(null);
 
-    // Pre-fill existing RSVP data if guest already submitted before
     if (guest.rsvpSubmitted) {
       setAttending(guest.attending ?? true);
       setMealPreference(guest.mealPreference || WEDDING_CONFIG.meals[0].id);
@@ -91,9 +86,8 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
       }
       setSongRequest(guest.songRequest || "");
       setMessage(guest.message || "");
-      setStep(5); // Go directly to confirmation / summary view with option to edit!
+      setStep(5);
     } else {
-      // Default initial states
       setAttending(true);
       setMealPreference(WEDDING_CONFIG.meals[0].id);
       setStep(2);
@@ -106,14 +100,12 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
       setSearchResults([]);
       return;
     }
-    setIsSearching(true);
     const results = searchGuestsByName(query);
-    setIsSearching(false);
     setSearchResults(results);
 
     if (results.length === 0) {
       setLookupError(
-        `We couldn't find "${query}" on our guest list. Please double check spelling, or try entering your unique invite code below!`
+        `We couldn't find "${query}" on our guest list. Please double check spelling or enter your unique invitation code below.`
       );
     } else if (results.length === 1) {
       selectGuest(results[0]);
@@ -136,14 +128,13 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
   const handleNextStep = () => {
     if (step === 2) {
       if (!attending) {
-        // Declining: skip meal and +1 steps directly to note/song or confirmation
         setStep(4);
         return;
       }
       if (selectedGuest?.allowedPlusOne) {
-        setStep(3); // Go to +1 step
+        setStep(3);
       } else {
-        setStep(4); // Go to song & note step
+        setStep(4);
       }
     } else if (step === 3) {
       setStep(4);
@@ -181,17 +172,15 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
       setStep(5);
       if (onSubmitted) onSubmitted(updated);
 
-      // Trigger Confetti!
       if (attending) {
         try {
           confetti({
-            particleCount: 100,
-            spread: 70,
+            particleCount: 80,
+            spread: 60,
+            colors: ["#1B3B2B", "#C87A68", "#E8B4A8"],
             origin: { y: 0.6 },
           });
-        } catch (e) {
-          // ignore if canvas confetti unavailable
-        }
+        } catch (e) {}
       }
     }
   };
@@ -206,19 +195,19 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto bg-stone-950 border border-stone-800 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-8">
-      {/* Step Header Indicator */}
+    <div className="w-full max-w-2xl mx-auto bg-[#FFFFFF] border border-[#E2D9CE] rounded-3xl p-6 sm:p-10 shadow-lg space-y-8">
+      {/* Header Indicator */}
       {selectedGuest && (
-        <div className="flex items-center justify-between border-b border-stone-800 pb-4">
+        <div className="flex items-center justify-between border-b border-[#E2D9CE] pb-4">
           <div className="flex items-center space-x-2">
-            <Heart className="w-4 h-4 text-rose-400 fill-rose-400" />
-            <span className="text-sm font-serif font-bold text-stone-200">
+            <Heart className="w-4 h-4 text-[#C87A68] fill-[#C87A68]" />
+            <span className="text-sm font-serif font-bold text-[#1B3B2B]">
               RSVP for {selectedGuest.firstName} {selectedGuest.lastName}
             </span>
           </div>
           <button
             onClick={handleResetGuest}
-            className="text-xs text-stone-400 hover:text-amber-300 flex items-center space-x-1 cursor-pointer transition-colors"
+            className="text-xs text-[#6B7C75] hover:text-[#C87A68] flex items-center space-x-1 cursor-pointer transition-colors"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Not you? Change</span>
@@ -226,24 +215,24 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
         </div>
       )}
 
-      {/* STEP 1: GUEST LOOKUP (NAME SEARCH OR CODE) */}
+      {/* STEP 1: GUEST LOOKUP */}
       {step === 1 && (
         <div className="space-y-6">
           <div className="text-center space-y-2">
-            <span className="inline-block p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
-              <Search className="w-6 h-6" />
+            <span className="font-script text-3xl text-[#C87A68] block">
+              Kindly Respond
             </span>
-            <h3 className="text-2xl sm:text-3xl font-serif font-bold text-stone-100">
+            <h3 className="text-3xl font-serif font-bold text-[#1B3B2B]">
               Find Your Invitation
             </h3>
-            <p className="text-stone-400 text-sm">
-              Please enter your full name as written on your invitation, or enter your personalized guest code.
+            <p className="text-[#2E3834] text-sm font-sans max-w-md mx-auto">
+              Please enter your full name as written on your invitation, or enter your unique guest code.
             </p>
           </div>
 
           {/* Search by Name */}
           <div className="space-y-3">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-stone-300">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[#1B3B2B]">
               Option 1: Search by Guest Name
             </label>
             <div className="relative">
@@ -252,33 +241,33 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
                 value={nameQuery}
                 onChange={(e) => handleNameSearch(e.target.value)}
                 placeholder="e.g. Alex Rivers or Jordan Smith"
-                className="w-full px-4 py-3.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500 transition-colors text-base"
+                className="w-full px-4 py-3.5 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] transition-colors text-base"
               />
-              <Search className="absolute right-4 top-3.5 w-5 h-5 text-stone-500" />
+              <Search className="absolute right-4 top-3.5 w-5 h-5 text-[#6B7C75]" />
             </div>
 
-            {/* Live Search Results List */}
+            {/* Results Dropdown */}
             {searchResults.length > 1 && (
-              <div className="bg-stone-900 border border-stone-800 rounded-xl divide-y divide-stone-800 overflow-hidden">
-                <div className="p-3 text-xs font-semibold text-stone-400 bg-stone-950">
+              <div className="bg-[#FDFBF7] border border-[#E2D9CE] rounded-2xl divide-y divide-[#E2D9CE] overflow-hidden">
+                <div className="p-3 text-xs font-semibold text-[#6B7C75] bg-[#F4EFEA]">
                   Multiple guests found. Please select your name:
                 </div>
                 {searchResults.map((g) => (
                   <button
                     key={g.id}
                     onClick={() => selectGuest(g)}
-                    className="w-full p-3.5 text-left flex items-center justify-between hover:bg-amber-950/30 transition-colors cursor-pointer"
+                    className="w-full p-3.5 text-left flex items-center justify-between hover:bg-[#F9EBE8] transition-colors cursor-pointer"
                   >
                     <div>
-                      <p className="font-serif font-bold text-stone-100">
+                      <p className="font-serif font-bold text-[#1B3B2B]">
                         {g.firstName} {g.lastName}
                       </p>
-                      <p className="text-xs text-stone-400">
+                      <p className="text-xs text-[#6B7C75]">
                         {g.allowedPlusOne ? "+1 Allowed" : "Single Ticket"} •{" "}
                         {g.rsvpSubmitted ? "Already Responded" : "Pending RSVP"}
                       </p>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-amber-400" />
+                    <ArrowRight className="w-4 h-4 text-[#C87A68]" />
                   </button>
                 ))}
               </div>
@@ -287,17 +276,17 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
 
           {/* Divider */}
           <div className="relative flex py-2 items-center">
-            <div className="flex-grow border-t border-stone-800"></div>
-            <span className="flex-shrink mx-4 text-stone-500 text-xs uppercase tracking-widest">
+            <div className="flex-grow border-t border-[#E2D9CE]"></div>
+            <span className="flex-shrink mx-4 text-[#6B7C75] text-xs font-semibold uppercase tracking-widest">
               OR
             </span>
-            <div className="flex-grow border-t border-stone-800"></div>
+            <div className="flex-grow border-t border-[#E2D9CE]"></div>
           </div>
 
           {/* Search by Code */}
           <form onSubmit={handleCodeSearch} className="space-y-3">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-stone-300">
-              Option 2: Enter Invitation Code / QR Code
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[#1B3B2B]">
+              Option 2: Enter Invitation Code
             </label>
             <div className="flex gap-2">
               <input
@@ -305,21 +294,21 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
                 value={codeQuery}
                 onChange={(e) => setCodeQuery(e.target.value.toUpperCase())}
                 placeholder="e.g. NOLEN-SYREL-001"
-                className="flex-grow px-4 py-3 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 font-mono placeholder-stone-500 uppercase focus:outline-none focus:border-amber-500 text-sm"
+                className="flex-grow px-4 py-3 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] font-mono placeholder-[#6B7C75] uppercase focus:outline-none focus:border-[#C87A68] text-sm"
               />
               <button
                 type="submit"
-                className="px-6 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold text-sm transition-colors cursor-pointer"
+                className="px-6 py-3 rounded-2xl bg-[#1B3B2B] hover:bg-[#12281D] text-[#FDFBF7] font-semibold text-xs uppercase tracking-widest transition-colors cursor-pointer"
               >
-                Submit Code
+                Submit
               </button>
             </div>
           </form>
 
           {/* Error Message */}
           {lookupError && (
-            <div className="p-4 rounded-xl bg-rose-950/50 border border-rose-800 text-rose-200 text-xs sm:text-sm flex items-start space-x-3">
-              <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+            <div className="p-4 rounded-2xl bg-[#F9EBE8] border border-[#E8B4A8] text-[#A65747] text-xs sm:text-sm flex items-start space-x-3">
+              <AlertCircle className="w-5 h-5 text-[#C87A68] shrink-0 mt-0.5" />
               <span>{lookupError}</span>
             </div>
           )}
@@ -329,11 +318,14 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
       {/* STEP 2: ATTENDANCE & MEAL PREFERENCE */}
       {step === 2 && selectedGuest && (
         <div className="space-y-6">
-          <div className="text-center space-y-2">
-            <h3 className="text-2xl font-serif font-bold text-stone-100">
+          <div className="text-center space-y-1">
+            <span className="font-script text-3xl text-[#C87A68] block">
+              Celebration Attendance
+            </span>
+            <h3 className="text-3xl font-serif font-bold text-[#1B3B2B]">
               Will you be attending?
             </h3>
-            <p className="text-stone-400 text-sm">
+            <p className="text-[#6B7C75] text-xs uppercase tracking-wider font-semibold pt-1">
               {WEDDING_CONFIG.date.fullDate} • {WEDDING_CONFIG.venue.ceremony.name}
             </p>
           </div>
@@ -345,21 +337,21 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
               onClick={() => setAttending(true)}
               className={`p-5 rounded-2xl border-2 text-left flex items-start space-x-3 transition-all cursor-pointer ${
                 attending
-                  ? "border-amber-500 bg-amber-950/30 text-amber-100 shadow-lg"
-                  : "border-stone-800 bg-stone-900/50 text-stone-400 hover:border-stone-700"
+                  ? "border-[#1B3B2B] bg-[#EBF2ED] text-[#1B3B2B] shadow-sm"
+                  : "border-[#E2D9CE] bg-[#FDFBF7] text-[#6B7C75] hover:border-[#C87A68]"
               }`}
             >
               <CheckCircle2
                 className={`w-6 h-6 shrink-0 mt-0.5 ${
-                  attending ? "text-amber-400" : "text-stone-600"
+                  attending ? "text-[#1B3B2B]" : "text-[#E2D9CE]"
                 }`}
               />
               <div>
-                <p className="font-serif font-bold text-lg text-stone-100">
+                <p className="font-serif font-bold text-lg text-[#1B3B2B]">
                   Joyfully Accepts
                 </p>
-                <p className="text-xs text-stone-400 mt-1">
-                  I will be there to celebrate with Nolen & Syrel!
+                <p className="text-xs text-[#2E3834] mt-1">
+                  I will be there to celebrate with Nolen &amp; Syrel!
                 </p>
               </div>
             </button>
@@ -369,32 +361,32 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
               onClick={() => setAttending(false)}
               className={`p-5 rounded-2xl border-2 text-left flex items-start space-x-3 transition-all cursor-pointer ${
                 !attending
-                  ? "border-rose-500 bg-rose-950/30 text-rose-100 shadow-lg"
-                  : "border-stone-800 bg-stone-900/50 text-stone-400 hover:border-stone-700"
+                  ? "border-[#C87A68] bg-[#F9EBE8] text-[#A65747] shadow-sm"
+                  : "border-[#E2D9CE] bg-[#FDFBF7] text-[#6B7C75] hover:border-[#C87A68]"
               }`}
             >
               <XCircle
                 className={`w-6 h-6 shrink-0 mt-0.5 ${
-                  !attending ? "text-rose-400" : "text-stone-600"
+                  !attending ? "text-[#C87A68]" : "text-[#E2D9CE]"
                 }`}
               />
               <div>
-                <p className="font-serif font-bold text-lg text-stone-100">
+                <p className="font-serif font-bold text-lg text-[#1B3B2B]">
                   Regretfully Declines
                 </p>
-                <p className="text-xs text-stone-400 mt-1">
+                <p className="text-xs text-[#2E3834] mt-1">
                   Will be celebrating with you from afar.
                 </p>
               </div>
             </button>
           </div>
 
-          {/* Meal Selection for Primary Guest if Attending */}
+          {/* Meal Selection for Primary Guest */}
           {attending && (
-            <div className="space-y-4 pt-4 border-t border-stone-800">
+            <div className="space-y-4 pt-4 border-t border-[#E2D9CE]">
               <div className="flex items-center space-x-2">
-                <Utensils className="w-4 h-4 text-amber-400" />
-                <h4 className="text-sm font-semibold uppercase tracking-wider text-stone-300">
+                <Utensils className="w-4 h-4 text-[#C87A68]" />
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-[#1B3B2B]">
                   Select Entrée Choice for {selectedGuest.firstName}
                 </h4>
               </div>
@@ -403,10 +395,10 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
                 {WEDDING_CONFIG.meals.map((meal) => (
                   <label
                     key={meal.id}
-                    className={`block p-4 rounded-xl border transition-all cursor-pointer ${
+                    className={`block p-4 rounded-2xl border transition-all cursor-pointer ${
                       mealPreference === meal.id
-                        ? "border-amber-500 bg-stone-900 text-stone-100 shadow"
-                        : "border-stone-800 bg-stone-900/40 text-stone-400 hover:bg-stone-900"
+                        ? "border-[#1B3B2B] bg-[#EBF2ED] text-[#1B3B2B] shadow-sm"
+                        : "border-[#E2D9CE] bg-[#FDFBF7] text-[#2E3834] hover:bg-[#F4EFEA]"
                     }`}
                   >
                     <div className="flex items-start justify-between">
@@ -417,9 +409,9 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
                           value={meal.id}
                           checked={mealPreference === meal.id}
                           onChange={() => setMealPreference(meal.id)}
-                          className="w-4 h-4 text-amber-500 focus:ring-amber-500"
+                          className="w-4 h-4 text-[#1B3B2B] focus:ring-[#1B3B2B]"
                         />
-                        <span className="font-serif font-bold text-stone-100">
+                        <span className="font-serif font-bold text-[#1B3B2B] text-base">
                           {meal.name}
                         </span>
                       </div>
@@ -427,14 +419,14 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
                         {meal.tags.map((t) => (
                           <span
                             key={t}
-                            className="text-[10px] font-mono px-2 py-0.5 rounded bg-stone-800 text-amber-300 border border-stone-700"
+                            className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[#F4EFEA] text-[#C87A68] border border-[#E2D9CE]"
                           >
                             {t}
                           </span>
                         ))}
                       </div>
                     </div>
-                    <p className="text-xs text-stone-400 mt-2 pl-7">
+                    <p className="text-xs text-[#2E3834] mt-2 pl-7 leading-relaxed font-sans">
                       {meal.description}
                     </p>
                   </label>
@@ -443,7 +435,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
 
               {/* Dietary Restrictions */}
               <div className="space-y-2 pt-2">
-                <label className="block text-xs font-semibold text-stone-300">
+                <label className="block text-xs font-semibold text-[#1B3B2B]">
                   Dietary Restrictions or Allergies for {selectedGuest.firstName}:
                 </label>
                 <input
@@ -451,7 +443,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
                   value={dietaryRestrictions}
                   onChange={(e) => setDietaryRestrictions(e.target.value)}
                   placeholder="e.g. Vegetarian, Peanut allergy, Celiac, Dairy free"
-                  className="w-full px-4 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500 text-sm"
+                  className="w-full px-4 py-3 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] text-sm"
                 />
               </div>
             </div>
@@ -461,7 +453,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
           <div className="flex items-center justify-between pt-4">
             <button
               onClick={() => setStep(1)}
-              className="px-4 py-2 rounded-xl text-stone-400 hover:text-stone-200 text-sm flex items-center space-x-1"
+              className="px-4 py-2 rounded-xl text-[#6B7C75] hover:text-[#1B3B2B] text-xs uppercase tracking-wider font-semibold flex items-center space-x-1"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
@@ -469,7 +461,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
 
             <button
               onClick={handleNextStep}
-              className="px-6 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold text-sm transition-colors flex items-center space-x-2 cursor-pointer"
+              className="px-7 py-3 rounded-full bg-[#1B3B2B] hover:bg-[#12281D] text-[#FDFBF7] font-semibold text-xs uppercase tracking-widest transition-colors flex items-center space-x-2 cursor-pointer shadow"
             >
               <span>{attending && selectedGuest.allowedPlusOne ? "Continue to +1 Info" : "Continue"}</span>
               <ArrowRight className="w-4 h-4" />
@@ -478,91 +470,89 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
         </div>
       )}
 
-      {/* STEP 3: PLUS-ONE DETAILS (If guest has allowedPlusOne) */}
+      {/* STEP 3: PLUS-ONE DETAILS */}
       {step === 3 && selectedGuest && selectedGuest.allowedPlusOne && (
         <div className="space-y-6">
-          <div className="text-center space-y-2">
-            <span className="inline-block p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
-              <UserPlus className="w-6 h-6" />
+          <div className="text-center space-y-1">
+            <span className="font-script text-3xl text-[#C87A68] block">
+              Accompanied Guest
             </span>
-            <h3 className="text-2xl font-serif font-bold text-stone-100">
+            <h3 className="text-3xl font-serif font-bold text-[#1B3B2B]">
               Plus One (+1) Information
             </h3>
-            <p className="text-stone-400 text-sm">
+            <p className="text-[#2E3834] text-sm">
               Your invitation includes a guest (+1). Will you be bringing a guest?
             </p>
           </div>
 
-          {/* Plus One Toggle */}
           <div className="grid grid-cols-2 gap-4">
             <button
               type="button"
               onClick={() => setBringingPlusOne(true)}
-              className={`p-4 rounded-xl border text-center transition-all cursor-pointer ${
+              className={`p-4 rounded-2xl border text-center font-serif text-sm transition-all cursor-pointer ${
                 bringingPlusOne
-                  ? "border-amber-500 bg-amber-950/40 text-amber-200 font-bold"
-                  : "border-stone-800 bg-stone-900/40 text-stone-400"
+                  ? "border-[#1B3B2B] bg-[#EBF2ED] text-[#1B3B2B] font-bold shadow-sm"
+                  : "border-[#E2D9CE] bg-[#FDFBF7] text-[#6B7C75]"
               }`}
             >
-              Yes, I am bringing a guest
+              Yes, bringing a guest (+1)
             </button>
             <button
               type="button"
               onClick={() => setBringingPlusOne(false)}
-              className={`p-4 rounded-xl border text-center transition-all cursor-pointer ${
+              className={`p-4 rounded-2xl border text-center font-serif text-sm transition-all cursor-pointer ${
                 !bringingPlusOne
-                  ? "border-stone-600 bg-stone-900 text-stone-300 font-bold"
-                  : "border-stone-800 bg-stone-900/40 text-stone-400"
+                  ? "border-[#1B3B2B] bg-[#F4EFEA] text-[#1B3B2B] font-bold shadow-sm"
+                  : "border-[#E2D9CE] bg-[#FDFBF7] text-[#6B7C75]"
               }`}
             >
-              No guest (+1) needed
+              No guest needed
             </button>
           </div>
 
-          {/* If bringing +1, collect +1 details */}
           {bringingPlusOne && (
-            <div className="space-y-4 pt-4 border-t border-stone-800">
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-amber-400">
-                Guest (+1) Personal & Meal Information
+            <div className="space-y-4 pt-4 border-t border-[#E2D9CE]">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-[#C87A68]">
+                Guest (+1) Details
               </h4>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="block text-xs text-stone-300">Guest First Name *</label>
+                  <label className="block text-xs font-semibold text-[#1B3B2B]">Guest First Name *</label>
                   <input
                     type="text"
                     value={plusOneFirstName}
                     onChange={(e) => setPlusOneFirstName(e.target.value)}
                     placeholder="Guest's First Name"
                     required
-                    className="w-full px-4 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500 text-sm"
+                    className="w-full px-4 py-3 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] text-sm"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-xs text-stone-300">Guest Last Name *</label>
+                  <label className="block text-xs font-semibold text-[#1B3B2B]">Guest Last Name *</label>
                   <input
                     type="text"
                     value={plusOneLastName}
                     onChange={(e) => setPlusOneLastName(e.target.value)}
                     placeholder="Guest's Last Name"
                     required
-                    className="w-full px-4 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500 text-sm"
+                    className="w-full px-4 py-3 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] text-sm"
                   />
                 </div>
               </div>
 
               {/* Meal Selection for +1 */}
               <div className="space-y-3 pt-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-stone-300">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#1B3B2B]">
                   Select Entrée Choice for Guest (+1)
                 </label>
                 {WEDDING_CONFIG.meals.map((meal) => (
                   <label
                     key={`plusone-${meal.id}`}
-                    className={`block p-3.5 rounded-xl border transition-all cursor-pointer ${
+                    className={`block p-3.5 rounded-2xl border transition-all cursor-pointer ${
                       plusOneMeal === meal.id
-                        ? "border-amber-500 bg-stone-900 text-stone-100"
-                        : "border-stone-800 bg-stone-900/40 text-stone-400 hover:bg-stone-900"
+                        ? "border-[#1B3B2B] bg-[#EBF2ED] text-[#1B3B2B]"
+                        : "border-[#E2D9CE] bg-[#FDFBF7] text-[#2E3834] hover:bg-[#F4EFEA]"
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -573,9 +563,9 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
                           value={meal.id}
                           checked={plusOneMeal === meal.id}
                           onChange={() => setPlusOneMeal(meal.id)}
-                          className="w-4 h-4 text-amber-500 focus:ring-amber-500"
+                          className="w-4 h-4 text-[#1B3B2B] focus:ring-[#1B3B2B]"
                         />
-                        <span className="font-serif font-bold text-stone-100 text-sm">
+                        <span className="font-serif font-bold text-[#1B3B2B] text-base">
                           {meal.name}
                         </span>
                       </div>
@@ -586,7 +576,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
 
               {/* Plus one dietary */}
               <div className="space-y-2">
-                <label className="block text-xs font-semibold text-stone-300">
+                <label className="block text-xs font-semibold text-[#1B3B2B]">
                   Dietary Restrictions for Guest (+1):
                 </label>
                 <input
@@ -594,7 +584,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
                   value={plusOneDietary}
                   onChange={(e) => setPlusOneDietary(e.target.value)}
                   placeholder="e.g. Gluten-free, Vegan, Nut allergy"
-                  className="w-full px-4 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500 text-sm"
+                  className="w-full px-4 py-3 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] text-sm"
                 />
               </div>
             </div>
@@ -604,7 +594,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
           <div className="flex items-center justify-between pt-4">
             <button
               onClick={() => setStep(2)}
-              className="px-4 py-2 rounded-xl text-stone-400 hover:text-stone-200 text-sm flex items-center space-x-1"
+              className="px-4 py-2 rounded-xl text-[#6B7C75] hover:text-[#1B3B2B] text-xs uppercase tracking-wider font-semibold flex items-center space-x-1"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
@@ -612,7 +602,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
 
             <button
               onClick={handleNextStep}
-              className="px-6 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold text-sm transition-colors flex items-center space-x-2 cursor-pointer"
+              className="px-7 py-3 rounded-full bg-[#1B3B2B] hover:bg-[#12281D] text-[#FDFBF7] font-semibold text-xs uppercase tracking-widest transition-colors flex items-center space-x-2 cursor-pointer shadow"
             >
               <span>Continue</span>
               <ArrowRight className="w-4 h-4" />
@@ -621,44 +611,47 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
         </div>
       )}
 
-      {/* STEP 4: MUSIC & NOTE TO COUPLE */}
+      {/* STEP 4: MUSIC & NOTE */}
       {step === 4 && selectedGuest && (
         <div className="space-y-6">
-          <div className="text-center space-y-2">
-            <h3 className="text-2xl font-serif font-bold text-stone-100">
-              Almost Done!
+          <div className="text-center space-y-1">
+            <span className="font-script text-3xl text-[#C87A68] block">
+              Warm Wishes
+            </span>
+            <h3 className="text-3xl font-serif font-bold text-[#1B3B2B]">
+              Almost Finished!
             </h3>
-            <p className="text-stone-400 text-sm">
-              Help us build our dance playlist and send a warm message to Nolen & Syrel.
+            <p className="text-[#2E3834] text-sm">
+              Send a song recommendation for the reception and a note for Nolen &amp; Syrel.
             </p>
           </div>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-amber-400 flex items-center space-x-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#C87A68] flex items-center space-x-2">
                 <Music className="w-4 h-4" />
-                <span>Song Request (Dance Floor Guarantee!)</span>
+                <span>Song Request</span>
               </label>
               <input
                 type="text"
                 value={songRequest}
                 onChange={(e) => setSongRequest(e.target.value)}
-                placeholder="e.g. September by Earth Wind & Fire, Dancing Queen..."
-                className="w-full px-4 py-3 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500 text-sm"
+                placeholder="e.g. September by Earth, Wind & Fire..."
+                className="w-full px-4 py-3 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] text-sm"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-amber-400 flex items-center space-x-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#C87A68] flex items-center space-x-2">
                 <MessageSquare className="w-4 h-4" />
-                <span>Note / Message to Nolen & Syrel</span>
+                <span>Note / Message for Nolen &amp; Syrel</span>
               </label>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={3}
-                placeholder="Leave a sweet note, well wishes, or advice for the happy couple!"
-                className="w-full px-4 py-3 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500 text-sm resize-none"
+                placeholder="Leave a sweet note or well wishes!"
+                className="w-full px-4 py-3 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] text-sm resize-none"
               />
             </div>
           </div>
@@ -667,7 +660,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
           <div className="flex items-center justify-between pt-4">
             <button
               onClick={() => setStep(selectedGuest.allowedPlusOne && attending ? 3 : 2)}
-              className="px-4 py-2 rounded-xl text-stone-400 hover:text-stone-200 text-sm flex items-center space-x-1"
+              className="px-4 py-2 rounded-xl text-[#6B7C75] hover:text-[#1B3B2B] text-xs uppercase tracking-wider font-semibold flex items-center space-x-1"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
@@ -675,51 +668,53 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
 
             <button
               onClick={handleSubmitFinal}
-              className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold text-base transition-all shadow-xl flex items-center space-x-2 cursor-pointer"
+              className="px-8 py-3.5 rounded-full bg-[#1B3B2B] hover:bg-[#12281D] text-[#FDFBF7] font-semibold text-xs uppercase tracking-widest transition-all shadow-md flex items-center space-x-2 cursor-pointer"
             >
-              <Sparkles className="w-5 h-5" />
+              <Heart className="w-4 h-4 text-[#C87A68] fill-[#C87A68]" />
               <span>Submit RSVP Response</span>
             </button>
           </div>
         </div>
       )}
 
-      {/* STEP 5: CONFIRMATION BADGE / SUMMARY VIEW */}
+      {/* STEP 5: CONFIRMATION PASS */}
       {step === 5 && selectedGuest && (
         <div className="space-y-8">
-          {/* Header */}
-          <div className="text-center space-y-3">
-            <div className="w-16 h-16 mx-auto rounded-full bg-emerald-950 border border-emerald-500/50 flex items-center justify-center text-emerald-400 shadow-lg">
-              <CheckCircle2 className="w-8 h-8" />
+          <div className="text-center space-y-2">
+            <div className="w-16 h-16 mx-auto rounded-full bg-[#EBF2ED] border border-[#38664F]/40 flex items-center justify-center text-[#1B3B2B] shadow-sm">
+              <CheckCircle2 className="w-8 h-8 text-[#1B3B2B]" />
             </div>
-            <h3 className="text-3xl font-serif font-bold text-stone-100">
+            <span className="font-script text-3xl text-[#C87A68] block">
+              Thank You!
+            </span>
+            <h3 className="text-3xl font-serif font-bold text-[#1B3B2B]">
               {selectedGuest.attending ? "RSVP Confirmed!" : "Response Recorded"}
             </h3>
-            <p className="text-stone-400 text-sm">
-              Thank you, {selectedGuest.firstName}! We have saved your response.
+            <p className="text-[#2E3834] text-sm">
+              We look forward to seeing you, {selectedGuest.firstName}!
             </p>
           </div>
 
-          {/* Digital Ticket / Pass Card Mockup */}
-          <div className="bg-gradient-to-b from-stone-900 to-stone-950 border border-amber-500/30 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
-            <div className="flex items-center justify-between border-b border-stone-800 pb-4">
+          {/* Digital Pass Card */}
+          <div className="bg-[#FDFBF7] border border-[#E2D9CE] rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm relative overflow-hidden">
+            <div className="flex items-center justify-between border-b border-[#E2D9CE] pb-4">
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400 block">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-[#C87A68] block">
                   Wedding Guest Pass
                 </span>
-                <span className="font-serif font-bold text-xl text-stone-100">
+                <span className="font-serif font-bold text-2xl text-[#1B3B2B]">
                   {selectedGuest.firstName} {selectedGuest.lastName}
                 </span>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-stone-400 block">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-[#6B7C75] block">
                   Status
                 </span>
                 <span
-                  className={`text-xs font-bold font-mono px-2.5 py-0.5 rounded-full ${
+                  className={`text-xs font-semibold px-3 py-1 rounded-full ${
                     selectedGuest.attending
-                      ? "bg-emerald-950 text-emerald-300 border border-emerald-800"
-                      : "bg-rose-950 text-rose-300 border border-rose-800"
+                      ? "bg-[#EBF2ED] text-[#1B3B2B] border border-[#38664F]/30"
+                      : "bg-[#F9EBE8] text-[#A65747] border border-[#E8B4A8]"
                   }`}
                 >
                   {selectedGuest.attending ? "ATTENDING" : "DECLINED"}
@@ -727,35 +722,34 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
               </div>
             </div>
 
-            {/* Response Breakdown */}
             {selectedGuest.attending && (
-              <div className="space-y-4 text-xs sm:text-sm text-stone-300">
-                <div className="grid grid-cols-2 gap-4 bg-stone-950/60 p-4 rounded-2xl border border-stone-800">
+              <div className="space-y-3 text-xs sm:text-sm text-[#2E3834]">
+                <div className="grid grid-cols-2 gap-4 bg-[#FFFFFF] p-4 rounded-2xl border border-[#E2D9CE]">
                   <div>
-                    <span className="text-stone-500 block text-[11px]">Primary Meal</span>
-                    <span className="font-semibold text-amber-200">
+                    <span className="text-[#6B7C75] block text-[11px] font-serif">Primary Meal</span>
+                    <span className="font-bold text-[#1B3B2B] font-serif">
                       {WEDDING_CONFIG.meals.find((m) => m.id === selectedGuest.mealPreference)?.name || "Selected"}
                     </span>
                   </div>
                   <div>
-                    <span className="text-stone-500 block text-[11px]">Dietary Notes</span>
-                    <span className="font-semibold text-stone-300">
+                    <span className="text-[#6B7C75] block text-[11px] font-serif">Dietary Notes</span>
+                    <span className="font-semibold text-[#2E3834]">
                       {selectedGuest.dietaryRestrictions || "None"}
                     </span>
                   </div>
                 </div>
 
                 {selectedGuest.plusOne && selectedGuest.plusOne.attending && (
-                  <div className="grid grid-cols-2 gap-4 bg-stone-950/60 p-4 rounded-2xl border border-stone-800">
+                  <div className="grid grid-cols-2 gap-4 bg-[#FFFFFF] p-4 rounded-2xl border border-[#E2D9CE]">
                     <div>
-                      <span className="text-stone-500 block text-[11px]">Plus-One (+1)</span>
-                      <span className="font-semibold text-amber-200">
+                      <span className="text-[#6B7C75] block text-[11px] font-serif">Plus-One (+1)</span>
+                      <span className="font-bold text-[#1B3B2B] font-serif">
                         {selectedGuest.plusOne.firstName} {selectedGuest.plusOne.lastName}
                       </span>
                     </div>
                     <div>
-                      <span className="text-stone-500 block text-[11px]">Plus-One Meal</span>
-                      <span className="font-semibold text-stone-300">
+                      <span className="text-[#6B7C75] block text-[11px] font-serif">Plus-One Meal</span>
+                      <span className="font-semibold text-[#2E3834]">
                         {WEDDING_CONFIG.meals.find((m) => m.id === selectedGuest.plusOne?.mealPreference)?.name || "Selected"}
                       </span>
                     </div>
@@ -764,37 +758,34 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
               </div>
             )}
 
-            {/* Personalized QR Code & Invite Code */}
-            <div className="pt-4 border-t border-stone-800 flex items-center justify-between">
-              <div className="space-y-1">
-                <span className="text-[10px] font-mono text-stone-500 uppercase tracking-widest block">
+            <div className="pt-4 border-t border-[#E2D9CE] flex items-center justify-between">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-semibold text-[#6B7C75] uppercase tracking-widest block">
                   Invitation Code
                 </span>
-                <span className="font-mono text-sm font-bold text-amber-400">
+                <span className="font-mono text-sm font-bold text-[#1B3B2B]">
                   {selectedGuest.code}
                 </span>
               </div>
 
-              <div className="p-2 bg-white rounded-xl shadow shrink-0">
-                {/* Visual QR Code Mockup */}
-                <QrCode className="w-10 h-10 text-stone-950" />
+              <div className="p-2 bg-[#FFFFFF] rounded-2xl border border-[#E2D9CE] shadow-sm">
+                <QrCode className="w-9 h-9 text-[#1B3B2B]" />
               </div>
             </div>
           </div>
 
-          {/* Edit / Change Response Button */}
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <button
               onClick={() => setStep(2)}
-              className="flex-1 py-3 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-200 font-semibold text-sm transition-colors text-center cursor-pointer"
+              className="flex-1 py-3 rounded-full bg-[#F4EFEA] hover:bg-[#E2D9CE] border border-[#E2D9CE] text-[#1B3B2B] font-semibold text-xs uppercase tracking-widest transition-colors text-center cursor-pointer"
             >
-              Update / Change Response
+              Update Response
             </button>
             <button
               onClick={handleResetGuest}
-              className="flex-1 py-3 rounded-xl bg-stone-950 hover:bg-stone-900 border border-stone-800 text-stone-400 text-sm transition-colors text-center cursor-pointer"
+              className="flex-1 py-3 rounded-full bg-[#FFFFFF] hover:bg-[#FDFBF7] border border-[#E2D9CE] text-[#6B7C75] font-semibold text-xs uppercase tracking-widest transition-colors text-center cursor-pointer"
             >
-              Done / Lookup Another Guest
+              Done / Lookup Another
             </button>
           </div>
         </div>

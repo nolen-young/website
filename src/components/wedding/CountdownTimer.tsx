@@ -57,17 +57,17 @@ export function CountdownTimer({ targetDateIso }: CountdownTimerProps) {
   ];
 
   return (
-    <div className="w-full max-w-xl mx-auto py-6">
+    <div className="w-full max-w-xl mx-auto py-4">
       <div className="grid grid-cols-4 gap-3 sm:gap-4 text-center">
         {timerUnits.map((unit) => (
           <div
             key={unit.label}
-            className="bg-stone-900/60 backdrop-blur-md border border-amber-500/20 rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col justify-center transform hover:scale-105 transition-transform"
+            className="bg-[#FFFFFF] border border-[#E2D9CE] rounded-2xl p-3 sm:p-4 shadow-sm flex flex-col justify-center transform hover:-translate-y-0.5 transition-transform"
           >
-            <span className="font-mono text-2xl sm:text-4xl font-bold text-amber-300 tracking-tight">
+            <span className="font-serif text-2xl sm:text-4xl font-bold text-[#1B3B2B] tracking-tight">
               {String(unit.value).padStart(2, "0")}
             </span>
-            <span className="text-[10px] sm:text-xs font-medium uppercase tracking-widest text-stone-400 mt-1">
+            <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-[#C87A68] mt-1">
               {unit.label}
             </span>
           </div>

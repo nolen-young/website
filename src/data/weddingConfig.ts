@@ -79,10 +79,10 @@ export const WEDDING_CONFIG = {
     code: "Formal / Black-Tie Optional",
     description: "We invite you to dress up with us! Tuxedos or dark suits for gentlemen, and floor-length gowns or elegant cocktail dresses for ladies.",
     palette: [
-      { name: "Emerald Green", hex: "#064e3b" },
-      { name: "Champagne Gold", hex: "#d97706" },
-      { name: "Midnight Navy", hex: "#0f172a" },
-      { name: "Rose Quartz", hex: "#f43f5e" },
+      { name: "Forest Evergreen", hex: "#1B3B2B" },
+      { name: "Pinkish Taupe", hex: "#C87A68" },
+      { name: "Soft Ivory", hex: "#FDFBF7" },
+      { name: "Sage Green", hex: "#7A9A8B" },
     ],
   },
   schedule: [

@@ -12,15 +12,14 @@ import { FaqSection } from "@/components/wedding/FaqSection";
 import { Footer } from "@/components/wedding/Footer";
 import { RsvpModal } from "@/components/wedding/RsvpModal";
 import { RsvpForm } from "@/components/wedding/RsvpForm";
-import { Sparkles, Calendar, Heart } from "lucide-react";
-import { WEDDING_CONFIG } from "@/data/weddingConfig";
+import { Heart } from "lucide-react";
 
 export default function WeddingPage() {
   const [isRsvpOpen, setIsRsvpOpen] = useState(false);
 
   return (
-    <Suspense fallback={<div className="min-h-screen bg-stone-950 text-amber-200 p-8 text-center">Loading Wedding Site...</div>}>
-      <div className="min-h-screen bg-stone-950 text-stone-100 font-sans selection:bg-amber-500 selection:text-stone-950">
+    <Suspense fallback={<div className="min-h-screen bg-[#FDFBF7] text-[#1B3B2B] p-8 text-center font-serif text-xl">Loading Wedding Website...</div>}>
+      <div className="min-h-screen bg-[#FDFBF7] text-[#2E3834] font-sans selection:bg-[#C87A68] selection:text-white">
         <Navbar onOpenRsvp={() => setIsRsvpOpen(true)} />
 
         <main>
@@ -30,19 +29,23 @@ export default function WeddingPage() {
           <VenueSection />
 
           {/* Embedded RSVP Banner Section */}
-          <section id="rsvp-section" className="py-24 px-4 bg-gradient-to-b from-stone-950 via-stone-900 to-stone-950 border-t border-stone-800">
+          <section id="rsvp-section" className="py-24 px-4 bg-[#F4EFEA] border-t border-[#E2D9CE]">
             <div className="max-w-4xl mx-auto space-y-12">
-              <div className="text-center space-y-3">
-                <span className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold uppercase tracking-widest">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>RSVP Online</span>
+              <div className="text-center space-y-2">
+                <span className="font-script text-3xl text-[#C87A68] block">
+                  Celebration Attendance
                 </span>
-                <h2 className="text-3xl sm:text-5xl font-serif font-bold text-stone-100">
+                <h2 className="text-4xl sm:text-5xl font-serif font-bold text-[#1B3B2B]">
                   Kindly Respond By Sept 1, 2026
                 </h2>
-                <p className="text-stone-400 font-serif italic text-base sm:text-lg max-w-xl mx-auto">
+                <p className="text-[#2E3834] font-serif italic text-base sm:text-lg max-w-xl mx-auto">
                   Search your name or enter your personalized invitation code to submit your RSVP and dinner preference.
                 </p>
+                <div className="flex items-center justify-center space-x-3 text-[#E2D9CE] pt-2">
+                  <span className="h-[1px] w-12 bg-[#E2D9CE]" />
+                  <Heart className="w-3.5 h-3.5 text-[#C87A68] fill-[#C87A68]" />
+                  <span className="h-[1px] w-12 bg-[#E2D9CE]" />
+                </div>
               </div>
 
               {/* Inline Form */}
@@ -57,7 +60,7 @@ export default function WeddingPage() {
 
         <Footer />
 
-        {/* Modal Overlay for Navigation Bar RSVP button */}
+        {/* Modal Overlay */}
         <RsvpModal isOpen={isRsvpOpen} onClose={() => setIsRsvpOpen(false)} />
       </div>
     </Suspense>

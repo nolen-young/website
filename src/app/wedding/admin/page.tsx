@@ -14,11 +14,10 @@ import {
   RotateCcw,
   Search,
   ArrowLeft,
-  Sparkles,
 } from "lucide-react";
 import { Guest } from "@/data/guestList";
 import { WEDDING_CONFIG } from "@/data/weddingConfig";
-import { getGuests, resetGuestListToDefault, saveGuests } from "@/lib/rsvpService";
+import { getGuests, resetGuestListToDefault } from "@/lib/rsvpService";
 
 function AdminDashboardContent() {
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -46,11 +45,6 @@ function AdminDashboardContent() {
   };
 
   // Stats Calculations
-  const totalInvitedGuests = guests.reduce(
-    (acc, g) => acc + 1 + (g.allowedPlusOne ? 1 : 0),
-    0
-  );
-
   const totalSubmitted = guests.filter((g) => g.rsvpSubmitted).length;
   
   const attendingPrimaryCount = guests.filter((g) => g.rsvpSubmitted && g.attending).length;
@@ -151,137 +145,133 @@ function AdminDashboardContent() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-950 text-stone-100 py-10 px-4 sm:px-8 space-y-10">
+    <div className="min-h-screen bg-[#FDFBF7] text-[#2E3834] py-10 px-4 sm:px-8 space-y-10">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Navigation & Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-800 pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E2D9CE] pb-6">
           <div className="space-y-1">
             <Link
               href="/wedding"
-              className="inline-flex items-center space-x-1 text-xs text-amber-400 hover:text-amber-300 font-mono"
+              className="inline-flex items-center space-x-1 text-xs text-[#C87A68] hover:text-[#1B3B2B] font-semibold uppercase tracking-wider"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Public Wedding Site</span>
             </Link>
-            <h1 className="text-3xl font-serif font-bold text-stone-100 flex items-center space-x-3">
-              <span>RSVP Admin Dashboard</span>
-              <span className="text-xs font-mono font-normal px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                Nolen & Syrel
-              </span>
+            <h1 className="text-3xl font-serif font-bold text-[#1B3B2B] flex items-center space-x-3">
+              <span>RSVP Management Dashboard</span>
             </h1>
           </div>
 
           <div className="flex items-center space-x-3">
             <button
               onClick={handleExportCsv}
-              className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold text-sm transition-colors flex items-center space-x-2 shadow cursor-pointer"
+              className="px-5 py-2.5 rounded-full bg-[#1B3B2B] hover:bg-[#12281D] text-[#FDFBF7] font-semibold text-xs uppercase tracking-widest transition-colors flex items-center space-x-2 shadow cursor-pointer"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-4 h-4 text-[#C87A68]" />
               <span>Export CSV</span>
             </button>
             <button
               onClick={handleResetData}
-              className="px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-400 hover:text-stone-200 text-xs transition-colors flex items-center space-x-1.5 cursor-pointer"
+              className="px-4 py-2.5 rounded-full bg-[#FFFFFF] hover:bg-[#F4EFEA] border border-[#E2D9CE] text-[#6B7C75] hover:text-[#1B3B2B] text-xs font-semibold uppercase tracking-wider transition-colors flex items-center space-x-1.5 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset Test Data</span>
+              <span>Reset Data</span>
             </button>
           </div>
         </div>
 
-        {/* Overview Stats Cards */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-stone-900/80 border border-stone-800 rounded-2xl p-5 space-y-2">
+          <div className="bg-[#FFFFFF] border border-[#E2D9CE] rounded-3xl p-6 space-y-2 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono uppercase tracking-widest text-stone-400">
-                Total Attending Headcount
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-[#6B7C75]">
+                Attending Headcount
               </span>
-              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              <CheckCircle2 className="w-5 h-5 text-[#1B3B2B]" />
             </div>
-            <p className="text-3xl font-bold font-mono text-emerald-400">
+            <p className="text-4xl font-bold font-serif text-[#1B3B2B]">
               {totalAttendingHeadcount}
             </p>
-            <p className="text-xs text-stone-400">
-              {attendingPrimaryCount} Primary Guests + {attendingPlusOneCount} Plus-Ones
+            <p className="text-xs text-[#6B7C75]">
+              {attendingPrimaryCount} Primary + {attendingPlusOneCount} Plus-Ones
             </p>
           </div>
 
-          <div className="bg-stone-900/80 border border-stone-800 rounded-2xl p-5 space-y-2">
+          <div className="bg-[#FFFFFF] border border-[#E2D9CE] rounded-3xl p-6 space-y-2 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono uppercase tracking-widest text-stone-400">
-                RSVP Response Rate
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-[#6B7C75]">
+                Response Rate
               </span>
-              <Users className="w-5 h-5 text-amber-400" />
+              <Users className="w-5 h-5 text-[#C87A68]" />
             </div>
-            <p className="text-3xl font-bold font-mono text-amber-300">
+            <p className="text-4xl font-bold font-serif text-[#C87A68]">
               {totalSubmitted} / {guests.length}
             </p>
-            <p className="text-xs text-stone-400">
+            <p className="text-xs text-[#6B7C75]">
               {Math.round((totalSubmitted / (guests.length || 1)) * 100)}% Invitations Responded
             </p>
           </div>
 
-          <div className="bg-stone-900/80 border border-stone-800 rounded-2xl p-5 space-y-2">
+          <div className="bg-[#FFFFFF] border border-[#E2D9CE] rounded-3xl p-6 space-y-2 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono uppercase tracking-widest text-stone-400">
-                Declined Invitations
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-[#6B7C75]">
+                Declined Count
               </span>
-              <XCircle className="w-5 h-5 text-rose-400" />
+              <XCircle className="w-5 h-5 text-[#A65747]" />
             </div>
-            <p className="text-3xl font-bold font-mono text-rose-400">
+            <p className="text-4xl font-bold font-serif text-[#A65747]">
               {totalDeclinedCount}
             </p>
-            <p className="text-xs text-stone-400">Unable to attend</p>
+            <p className="text-xs text-[#6B7C75]">Unable to attend</p>
           </div>
 
-          <div className="bg-stone-900/80 border border-stone-800 rounded-2xl p-5 space-y-2">
+          <div className="bg-[#FFFFFF] border border-[#E2D9CE] rounded-3xl p-6 space-y-2 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono uppercase tracking-widest text-stone-400">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-[#6B7C75]">
                 Pending Responses
               </span>
-              <Clock className="w-5 h-5 text-amber-500" />
+              <Clock className="w-5 h-5 text-[#C87A68]" />
             </div>
-            <p className="text-3xl font-bold font-mono text-amber-400">
+            <p className="text-4xl font-bold font-serif text-[#1B3B2B]">
               {totalPendingCount}
             </p>
-            <p className="text-xs text-stone-400">Awaiting guest response</p>
+            <p className="text-xs text-[#6B7C75]">Awaiting guest response</p>
           </div>
         </div>
 
         {/* Meal Breakdown Summary */}
-        <div className="bg-stone-900/80 border border-stone-800 rounded-2xl p-6 space-y-4">
+        <div className="bg-[#FFFFFF] border border-[#E2D9CE] rounded-3xl p-6 space-y-4 shadow-sm">
           <div className="flex items-center space-x-2">
-            <Utensils className="w-5 h-5 text-amber-400" />
-            <h3 className="font-serif font-bold text-lg text-stone-100">
-              Catering Entrée Summary
+            <Utensils className="w-5 h-5 text-[#C87A68]" />
+            <h3 className="font-serif font-bold text-xl text-[#1B3B2B]">
+              Catering Entrée Orders
             </h3>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {WEDDING_CONFIG.meals.map((m) => (
-              <div key={m.id} className="bg-stone-950 p-4 rounded-xl border border-stone-800 space-y-1">
-                <p className="text-xs text-stone-400">{m.name}</p>
-                <p className="text-2xl font-mono font-bold text-amber-300">
-                  {mealCounts[m.id] || 0} <span className="text-xs text-stone-500">plates</span>
+              <div key={m.id} className="bg-[#FDFBF7] p-4 rounded-2xl border border-[#E2D9CE] space-y-1">
+                <p className="text-xs font-serif font-bold text-[#1B3B2B]">{m.name}</p>
+                <p className="text-2xl font-serif font-bold text-[#C87A68]">
+                  {mealCounts[m.id] || 0} <span className="text-xs font-sans text-[#6B7C75]">plates</span>
                 </p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Guest List Table & Controls */}
-        <div className="bg-stone-900/90 border border-stone-800 rounded-2xl overflow-hidden shadow-xl space-y-4 p-6">
+        {/* Guest List Table */}
+        <div className="bg-[#FFFFFF] border border-[#E2D9CE] rounded-3xl overflow-hidden shadow-sm space-y-4 p-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            {/* Filters */}
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               {(["all", "attending", "declined", "pending"] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer ${
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer ${
                     filter === f
-                      ? "bg-amber-600 text-stone-950"
-                      : "bg-stone-950 text-stone-400 hover:text-stone-200 border border-stone-800"
+                      ? "bg-[#1B3B2B] text-[#FDFBF7]"
+                      : "bg-[#FDFBF7] text-[#2E3834] hover:text-[#C87A68] border border-[#E2D9CE]"
                   }`}
                 >
                   {f} ({
@@ -297,56 +287,54 @@ function AdminDashboardContent() {
               ))}
             </div>
 
-            {/* Search Input */}
             <div className="relative w-full sm:w-64">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search guest or code..."
-                className="w-full pl-9 pr-4 py-2 rounded-xl bg-stone-950 border border-stone-800 text-stone-100 text-xs placeholder-stone-500 focus:outline-none focus:border-amber-500"
+                className="w-full pl-9 pr-4 py-2 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] text-xs placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68]"
               />
-              <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-stone-500" />
+              <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-[#6B7C75]" />
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto border border-stone-800 rounded-xl">
-            <table className="w-full text-left text-xs text-stone-300">
-              <thead className="bg-stone-950 text-stone-400 font-mono uppercase tracking-widest border-b border-stone-800">
+          <div className="overflow-x-auto border border-[#E2D9CE] rounded-2xl">
+            <table className="w-full text-left text-xs text-[#2E3834]">
+              <thead className="bg-[#F4EFEA] text-[#1B3B2B] font-serif uppercase tracking-wider border-b border-[#E2D9CE]">
                 <tr>
-                  <th className="p-3.5">Guest Name</th>
-                  <th className="p-3.5">Invite Code</th>
-                  <th className="p-3.5">Status</th>
-                  <th className="p-3.5">Entrée</th>
-                  <th className="p-3.5">Plus-One (+1)</th>
-                  <th className="p-3.5">Dietary / Notes</th>
-                  <th className="p-3.5 text-right">Personal Link</th>
+                  <th className="p-3.5 font-bold">Guest Name</th>
+                  <th className="p-3.5 font-bold">Invite Code</th>
+                  <th className="p-3.5 font-bold">Status</th>
+                  <th className="p-3.5 font-bold">Entrée</th>
+                  <th className="p-3.5 font-bold">Plus-One (+1)</th>
+                  <th className="p-3.5 font-bold">Dietary / Notes</th>
+                  <th className="p-3.5 text-right font-bold">Link</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-800/60 bg-stone-900/40">
+              <tbody className="divide-y divide-[#E2D9CE]/60 bg-[#FFFFFF]">
                 {filteredGuests.map((g) => (
-                  <tr key={g.id} className="hover:bg-stone-950/60 transition-colors">
-                    <td className="p-3.5 font-serif font-bold text-stone-100">
+                  <tr key={g.id} className="hover:bg-[#FDFBF7] transition-colors">
+                    <td className="p-3.5 font-serif font-bold text-[#1B3B2B]">
                       {g.firstName} {g.lastName}
                     </td>
-                    <td className="p-3.5 font-mono text-amber-400 font-semibold">{g.code}</td>
+                    <td className="p-3.5 font-mono text-[#C87A68] font-bold">{g.code}</td>
                     <td className="p-3.5">
                       {!g.rsvpSubmitted ? (
-                        <span className="px-2 py-0.5 rounded bg-stone-800 text-stone-400">
+                        <span className="px-2 py-0.5 rounded-full bg-[#F4EFEA] text-[#6B7C75] text-[10px] font-semibold">
                           Pending
                         </span>
                       ) : g.attending ? (
-                        <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">
+                        <span className="px-2 py-0.5 rounded-full bg-[#EBF2ED] text-[#1B3B2B] border border-[#38664F]/30 text-[10px] font-bold">
                           Attending
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800">
+                        <span className="px-2 py-0.5 rounded-full bg-[#F9EBE8] text-[#A65747] border border-[#E8B4A8] text-[10px] font-bold">
                           Declined
                         </span>
                       )}
                     </td>
-                    <td className="p-3.5 font-mono text-stone-300">
+                    <td className="p-3.5 font-serif text-[#1B3B2B]">
                       {g.attending && g.mealPreference
                         ? WEDDING_CONFIG.meals.find((m) => m.id === g.mealPreference)?.name
                         : "—"}
@@ -355,38 +343,38 @@ function AdminDashboardContent() {
                       {g.allowedPlusOne ? (
                         g.plusOne?.attending ? (
                           <div className="space-y-0.5">
-                            <span className="font-semibold text-amber-200 block">
+                            <span className="font-serif font-bold text-[#1B3B2B] block">
                               {g.plusOne.firstName} {g.plusOne.lastName}
                             </span>
-                            <span className="text-[10px] font-mono text-stone-400 block">
+                            <span className="text-[10px] text-[#6B7C75] block">
                               Meal: {g.plusOne.mealPreference}
                             </span>
                           </div>
                         ) : g.rsvpSubmitted ? (
-                          <span className="text-stone-500">Not bringing +1</span>
+                          <span className="text-[#6B7C75]">Not bringing +1</span>
                         ) : (
-                          <span className="text-amber-400/70">+1 Eligible</span>
+                          <span className="text-[#C87A68] font-semibold">+1 Eligible</span>
                         )
                       ) : (
-                        <span className="text-stone-600">None</span>
+                        <span className="text-[#6B7C75]">None</span>
                       )}
                     </td>
-                    <td className="p-3.5 text-stone-400 max-w-xs truncate">
+                    <td className="p-3.5 text-[#2E3834] max-w-xs truncate">
                       {g.dietaryRestrictions || g.message || "—"}
                     </td>
                     <td className="p-3.5 text-right">
                       <button
                         onClick={() => handleCopyLink(g.code)}
-                        className="inline-flex items-center space-x-1 px-2.5 py-1 rounded bg-stone-950 hover:bg-stone-800 text-amber-300 border border-stone-800 text-[11px] transition-colors cursor-pointer"
+                        className="inline-flex items-center space-x-1 px-3 py-1 rounded-full bg-[#F4EFEA] hover:bg-[#E2D9CE] text-[#1B3B2B] border border-[#E2D9CE] text-[11px] font-semibold transition-colors cursor-pointer"
                       >
                         {copiedCode === g.code ? (
                           <>
-                            <Check className="w-3 h-3 text-green-400" />
-                            <span className="text-green-400">Copied</span>
+                            <Check className="w-3 h-3 text-[#1B3B2B]" />
+                            <span>Copied</span>
                           </>
                         ) : (
                           <>
-                            <Copy className="w-3 h-3" />
+                            <Copy className="w-3 h-3 text-[#C87A68]" />
                             <span>Copy URL</span>
                           </>
                         )}
@@ -405,7 +393,7 @@ function AdminDashboardContent() {
 
 export default function AdminPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-stone-950 text-amber-200 p-8 text-center">Loading Admin...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#FDFBF7] text-[#1B3B2B] p-8 text-center font-serif">Loading Admin...</div>}>
       <AdminDashboardContent />
     </Suspense>
   );
