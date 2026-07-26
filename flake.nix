@@ -1,27 +1,38 @@
 {
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  description = "Nolen & Syrel Personal Website and Wedding Subsite";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  };
 
   outputs = { self, nixpkgs }:
     let
-      system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
-      # Define the libraries the Next.js compiler needs
-      libPath = with pkgs; lib.makeLibraryPath [
-        stdenv.cc.cc.lib
-        zlib
-      ];
-    in {
-      devShells.${system}.default = pkgs.mkShell {
-        buildInputs = [ 
-          pkgs.nodejs_22 
-          pkgs.nodePackages.npm 
-        ];
+      supportedSystems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+      nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; });
+    in
+    {
+      devShells = forAllSystems (system:
+        let
+          pkgs = nixpkgsFor.${system};
+          libPath = pkgs.lib.makeLibraryPath (with pkgs; [
+            stdenv.cc.cc.lib
+            zlib
+          ]);
+        in
+        {
+          default = pkgs.mkShell {
+            packages = with pkgs; [
+              nodejs_22
+              nodePackages.npm
+              git
+            ];
 
-        shellHook = ''
-          # This allows the SWC binary to find its required libraries
-          export LD_LIBRARY_PATH="${libPath}:$LD_LIBRARY_PATH"
-          echo "Next.js dev environment loaded with NixOS binary fixes."
-        '';
-      };
+            shellHook = ''
+              export LD_LIBRARY_PATH="${libPath}:''${LD_LIBRARY_PATH:-}"
+              echo "✨ Next.js development environment loaded with NixOS library paths."
+            '';
+          };
+        });
     };
 }
