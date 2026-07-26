@@ -36,7 +36,7 @@ export default function WeddingPage() {
                   Celebration Attendance
                 </span>
                 <h2 className="text-4xl sm:text-5xl font-serif font-bold text-[#1B3B2B]">
-                  Kindly Respond By Sept 1, 2026
+                  Kindly Respond By August 15, 2027
                 </h2>
                 <p className="text-[#2E3834] font-serif italic text-base sm:text-lg max-w-xl mx-auto">
                   Search your name or enter your personalized invitation code to submit your RSVP and dinner preference.

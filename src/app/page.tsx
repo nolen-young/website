@@ -48,11 +48,11 @@ export default function Home() {
             <div className="flex flex-wrap gap-4 text-xs font-semibold text-[#1B3B2B] pt-2">
               <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-[#F4EFEA] border border-[#E2D9CE]">
                 <Calendar className="w-4 h-4 text-[#C87A68]" />
-                <span>October 17, 2026</span>
+                <span>October 2, 2027</span>
               </div>
               <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-[#EBF2ED] border border-[#38664F]/30">
                 <MapPin className="w-4 h-4 text-[#1B3B2B]" />
-                <span>Friday Harbor, WA</span>
+                <span>Snohomish, WA</span>
               </div>
             </div>
           </div>

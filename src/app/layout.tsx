@@ -23,8 +23,8 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: "Nolen & Syrel's Wedding | October 17, 2026",
-  description: "Join us in celebrating the wedding of Nolen Young & Syrel in Friday Harbor, Washington.",
+  title: "Nolen & Syrel's Wedding | October 2, 2027",
+  description: "Join us in celebrating the wedding of Nolen Young & Syrel at Woodland Meadow Farms in Snohomish, Washington.",
 };
 
 export default function RootLayout({

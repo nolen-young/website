@@ -40,7 +40,7 @@ function RsvpPageContent() {
             RSVP Portal
           </h1>
           <p className="text-[#2E3834] font-serif italic text-sm sm:text-base">
-            Please submit your response by September 1, 2026.
+            Please submit your response by August 15, 2027.
           </p>
         </div>
 
