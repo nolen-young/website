@@ -8,7 +8,6 @@ import {
   XCircle,
   UserPlus,
   Utensils,
-  Music,
   MessageSquare,
   QrCode,
   ArrowRight,
@@ -34,7 +33,7 @@ interface RsvpFormProps {
 }
 
 export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProps) {
-  // Step State: 1 = Lookup, 2 = Primary Attendance & Meal, 3 = +1 Guest Details, 4 = Song & Note, 5 = Confirmation
+  // Step State: 1 = Lookup, 2 = Primary Attendance & Meal, 3 = +1 Guest Details, 4 = Note to Couple, 5 = Confirmation
   const [step, setStep] = useState<number>(1);
   const [nameQuery, setNameQuery] = useState<string>(initialName || "");
   const [codeQuery, setCodeQuery] = useState<string>(initialCode || "");
@@ -54,8 +53,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
   const [plusOneMeal, setPlusOneMeal] = useState<string>(WEDDING_CONFIG.meals[0].id);
   const [plusOneDietary, setPlusOneDietary] = useState<string>("");
 
-  // Song & Note
-  const [songRequest, setSongRequest] = useState<string>("");
+  // Note to Couple
   const [message, setMessage] = useState<string>("");
 
   useEffect(() => {
@@ -90,7 +88,6 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
           setBringingPlusOne(true);
         }
       }
-      setSongRequest(guest.songRequest || "");
       setMessage(guest.message || "");
       setStep(5);
     } else {
@@ -178,7 +175,6 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
           : selectedGuest.allowedPlusOne
           ? { attending: false }
           : undefined,
-      songRequest,
       message,
     };
 
@@ -210,7 +206,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
     setStep(1);
   };
 
-  // Helper for step breadcrumbs
+  // Step Progress Indicator
   const getStepProgress = () => {
     if (step === 1) return null;
     const totalSteps = selectedGuest?.allowedPlusOne && attending ? 4 : 3;
@@ -298,7 +294,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
                 value={nameQuery}
                 onChange={(e) => handleNameSearch(e.target.value)}
                 placeholder="e.g. Alex Rivers or Jordan Smith"
-                className="w-full px-4 py-3.5 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] transition-colors text-base"
+                className="w-full px-4 py-3.5 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] transition-colors text-base font-serif"
               />
               <Search className="absolute right-4 top-3.5 w-5 h-5 text-[#6B7C75]" />
             </div>
@@ -387,7 +383,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
             </p>
           </div>
 
-          {/* Plus-One Callout Banner on Step 2 */}
+          {/* Plus-One Callout Banner */}
           {selectedGuest.allowedPlusOne && (
             <div className="p-4 rounded-2xl bg-[#EBF2ED] border border-[#38664F]/30 text-[#1B3B2B] flex items-center space-x-3 text-xs sm:text-sm">
               <Sparkles className="w-5 h-5 text-[#C87A68] shrink-0" />
@@ -686,7 +682,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
         </div>
       )}
 
-      {/* STEP 4: MUSIC & NOTE */}
+      {/* STEP 4: NOTE TO COUPLE */}
       {step === 4 && selectedGuest && (
         <div className="space-y-6">
           <div className="text-center space-y-1">
@@ -694,28 +690,14 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
               Warm Wishes
             </span>
             <h3 className="text-3xl font-serif font-bold text-[#1B3B2B]">
-              Almost Finished!
+              A Note for the Couple
             </h3>
-            <p className="text-[#2E3834] text-sm">
-              Send a song recommendation for the reception and a note for Nolen &amp; Syrel.
+            <p className="text-[#2E3834] text-sm font-serif">
+              Leave a sweet note or message for Nolen &amp; Syrel (optional).
             </p>
           </div>
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#C87A68] flex items-center space-x-2">
-                <Music className="w-4 h-4" />
-                <span>Song Request</span>
-              </label>
-              <input
-                type="text"
-                value={songRequest}
-                onChange={(e) => setSongRequest(e.target.value)}
-                placeholder="e.g. September by Earth, Wind & Fire..."
-                className="w-full px-4 py-3 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] text-sm"
-              />
-            </div>
-
             <div className="space-y-2">
               <label className="block text-xs font-semibold uppercase tracking-wider text-[#C87A68] flex items-center space-x-2">
                 <MessageSquare className="w-4 h-4" />
@@ -724,9 +706,9 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                rows={3}
-                placeholder="Leave a sweet note or well wishes!"
-                className="w-full px-4 py-3 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] text-sm resize-none"
+                rows={4}
+                placeholder="Leave a message, advice, or warm wishes for Nolen & Syrel!"
+                className="w-full px-4 py-3.5 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] text-sm resize-none font-serif"
               />
             </div>
           </div>
@@ -798,43 +780,83 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
             </div>
 
             {selectedGuest.attending && (
-              <div className="space-y-3 text-xs sm:text-sm text-[#2E3834]">
-                <div className="grid grid-cols-2 gap-4 bg-[#FFFFFF] p-4 rounded-2xl border border-[#E2D9CE]">
-                  <div>
-                    <span className="text-[#6B7C75] block text-[11px] font-serif">Primary Meal</span>
-                    <span className="font-bold text-[#1B3B2B] font-serif">
-                      {WEDDING_CONFIG.meals.find((m) => m.id === selectedGuest.mealPreference)?.name || "Selected"}
+              <div className="space-y-4 text-xs sm:text-sm text-[#2E3834]">
+                {/* Primary Guest Details Card */}
+                <div className="bg-[#FFFFFF] p-4 rounded-2xl border border-[#E2D9CE] space-y-2">
+                  <div className="flex items-center justify-between border-b border-[#E2D9CE]/60 pb-2">
+                    <span className="font-serif font-bold text-[#1B3B2B] text-sm">
+                      {selectedGuest.firstName} {selectedGuest.lastName} (Primary Guest)
+                    </span>
+                    <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-[#EBF2ED] text-[#1B3B2B]">
+                      Attending
                     </span>
                   </div>
-                  <div>
-                    <span className="text-[#6B7C75] block text-[11px] font-serif">Dietary Notes</span>
-                    <span className="font-semibold text-[#2E3834]">
-                      {selectedGuest.dietaryRestrictions || "None"}
-                    </span>
+                  <div className="grid grid-cols-2 gap-4 pt-1">
+                    <div>
+                      <span className="text-[#6B7C75] block text-[11px] font-serif">Entrée Selection</span>
+                      <span className="font-bold text-[#1B3B2B] font-serif">
+                        {WEDDING_CONFIG.meals.find((m) => m.id === selectedGuest.mealPreference)?.name || "Selected"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[#6B7C75] block text-[11px] font-serif">Dietary Notes</span>
+                      <span className="font-semibold text-[#2E3834]">
+                        {selectedGuest.dietaryRestrictions || "None"}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Plus-One Status in Summary */}
+                {/* Plus-One Guest Details Card */}
                 {selectedGuest.allowedPlusOne && (
-                  <div className="grid grid-cols-2 gap-4 bg-[#FFFFFF] p-4 rounded-2xl border border-[#E2D9CE]">
-                    <div>
-                      <span className="text-[#6B7C75] block text-[11px] font-serif">Plus-One (+1) Status</span>
-                      <span className="font-bold text-[#1B3B2B] font-serif">
+                  <div className="bg-[#FFFFFF] p-4 rounded-2xl border border-[#E2D9CE] space-y-2">
+                    <div className="flex items-center justify-between border-b border-[#E2D9CE]/60 pb-2">
+                      <span className="font-serif font-bold text-[#1B3B2B] text-sm">
                         {selectedGuest.plusOne?.attending && selectedGuest.plusOne.firstName
                           ? `${selectedGuest.plusOne.firstName} ${selectedGuest.plusOne.lastName || ""}`
-                          : selectedGuest.plusOne?.attending
-                          ? "Attending"
-                          : "Not Bringing +1"}
+                          : "Plus One (+1) Guest"}
+                      </span>
+                      <span
+                        className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded ${
+                          selectedGuest.plusOne?.attending
+                            ? "bg-[#EBF2ED] text-[#1B3B2B]"
+                            : "bg-[#F4EFEA] text-[#6B7C75]"
+                        }`}
+                      >
+                        {selectedGuest.plusOne?.attending ? "Attending" : "Not Bringing +1"}
                       </span>
                     </div>
-                    <div>
-                      <span className="text-[#6B7C75] block text-[11px] font-serif">Plus-One Meal</span>
-                      <span className="font-semibold text-[#2E3834]">
-                        {selectedGuest.plusOne?.attending && selectedGuest.plusOne.mealPreference
-                          ? WEDDING_CONFIG.meals.find((m) => m.id === selectedGuest.plusOne?.mealPreference)?.name || "Selected"
-                          : "N/A"}
-                      </span>
-                    </div>
+
+                    {selectedGuest.plusOne?.attending ? (
+                      <div className="grid grid-cols-2 gap-4 pt-1">
+                        <div>
+                          <span className="text-[#6B7C75] block text-[11px] font-serif">Entrée Selection</span>
+                          <span className="font-bold text-[#1B3B2B] font-serif">
+                            {WEDDING_CONFIG.meals.find((m) => m.id === selectedGuest.plusOne?.mealPreference)?.name || "Selected"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[#6B7C75] block text-[11px] font-serif">Dietary Notes</span>
+                          <span className="font-semibold text-[#2E3834]">
+                            {selectedGuest.plusOne?.dietaryRestrictions || "None"}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-[#6B7C75] italic pt-1">
+                        No +1 guest registered for this invitation.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Personal Message Preview */}
+                {selectedGuest.message && (
+                  <div className="bg-[#F4EFEA] p-3.5 rounded-xl border border-[#E2D9CE] text-xs">
+                    <span className="text-[#6B7C75] block text-[10px] uppercase tracking-wider font-semibold mb-1">
+                      Note to Nolen &amp; Syrel
+                    </span>
+                    <p className="text-[#2E3834] font-serif italic">&ldquo;{selectedGuest.message}&rdquo;</p>
                   </div>
                 )}
               </div>
