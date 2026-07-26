@@ -65,7 +65,12 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
         setLookupError(`Code "${initialCode}" was not found on the guest list.`);
       }
     } else if (initialName) {
-      handleNameSearch(initialName);
+      setNameQuery(initialName);
+      const results = searchGuestsByName(initialName);
+      setSearchResults(results);
+      if (results.length === 1) {
+        selectGuest(results[0]);
+      }
     }
   }, [initialCode, initialName]);
 
@@ -107,7 +112,8 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
     }
   };
 
-  const handleNameSearch = (query: string) => {
+  const handleNameQueryChange = (query: string) => {
+    setNameQuery(query);
     setLookupError(null);
     if (!query.trim()) {
       setSearchResults([]);
@@ -115,10 +121,19 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
     }
     const results = searchGuestsByName(query);
     setSearchResults(results);
+  };
+
+  const handleNameSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLookupError(null);
+    if (!nameQuery.trim()) return;
+
+    const results = searchGuestsByName(nameQuery);
+    setSearchResults(results);
 
     if (results.length === 0) {
       setLookupError(
-        `We couldn't find "${query}" on our guest list. Please check your spelling or enter your invitation code below.`
+        `We couldn't find "${nameQuery}" on our guest list. Please check your spelling or enter your unique invitation code below.`
       );
     } else if (results.length === 1) {
       selectGuest(results[0]);
@@ -284,48 +299,62 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
           </div>
 
           {/* Search by Name */}
-          <div className="space-y-3">
+          <form onSubmit={handleNameSearchSubmit} className="space-y-3">
             <label className="block text-xs font-semibold uppercase tracking-wider text-[#1B3B2B]">
               Option 1: Search by Guest Name
             </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={nameQuery}
-                onChange={(e) => handleNameSearch(e.target.value)}
-                placeholder="e.g. Alex Rivers or Jordan Smith"
-                className="w-full px-4 py-3.5 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] transition-colors text-base font-serif"
-              />
-              <Search className="absolute right-4 top-3.5 w-5 h-5 text-[#6B7C75]" />
+            <div className="flex gap-2">
+              <div className="relative flex-grow">
+                <input
+                  type="text"
+                  value={nameQuery}
+                  onChange={(e) => handleNameQueryChange(e.target.value)}
+                  placeholder="e.g. Alex Rivers or Jordan Smith"
+                  className="w-full px-4 py-3.5 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] transition-colors text-base font-serif"
+                />
+                <Search className="absolute right-4 top-3.5 w-5 h-5 text-[#6B7C75]" />
+              </div>
+              <button
+                type="submit"
+                className="px-6 py-3.5 rounded-2xl bg-[#1B3B2B] hover:bg-[#12281D] text-[#FDFBF7] font-semibold text-xs uppercase tracking-widest transition-colors cursor-pointer shrink-0"
+              >
+                Search
+              </button>
             </div>
 
             {/* Results Dropdown */}
-            {searchResults.length > 1 && (
-              <div className="bg-[#FDFBF7] border border-[#E2D9CE] rounded-2xl divide-y divide-[#E2D9CE] overflow-hidden">
+            {searchResults.length > 0 && (
+              <div className="bg-[#FDFBF7] border border-[#E2D9CE] rounded-2xl divide-y divide-[#E2D9CE] overflow-hidden mt-3 shadow-sm">
                 <div className="p-3 text-xs font-semibold text-[#6B7C75] bg-[#F4EFEA]">
-                  Multiple guests found. Please select your name:
+                  {searchResults.length === 1
+                    ? "Guest found! Click below to begin RSVP:"
+                    : `${searchResults.length} guests found. Please select your name:`}
                 </div>
                 {searchResults.map((g) => (
                   <button
                     key={g.id}
+                    type="button"
                     onClick={() => selectGuest(g)}
-                    className="w-full p-3.5 text-left flex items-center justify-between hover:bg-[#F9EBE8] transition-colors cursor-pointer"
+                    className="w-full p-4 text-left flex items-center justify-between hover:bg-[#F9EBE8] transition-colors cursor-pointer group"
                   >
                     <div>
-                      <p className="font-serif font-bold text-[#1B3B2B]">
+                      <p className="font-serif font-bold text-lg text-[#1B3B2B] group-hover:text-[#C87A68] transition-colors">
                         {g.firstName} {g.lastName}
                       </p>
                       <p className="text-xs text-[#6B7C75]">
-                        {g.allowedPlusOne ? "+1 Allowed" : "Single Ticket"} •{" "}
-                        {g.rsvpSubmitted ? "Already Responded" : "Pending RSVP"}
+                        {g.allowedPlusOne ? "+1 Allowed" : "Single Ticket"} &bull;{" "}
+                        {g.rsvpSubmitted ? "Already Responded (Click to view/edit)" : "Pending RSVP"}
                       </p>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-[#C87A68]" />
+                    <div className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full bg-[#1B3B2B] group-hover:bg-[#C87A68] text-white text-xs font-semibold uppercase tracking-wider transition-colors">
+                      <span>Select</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
                   </button>
                 ))}
               </div>
             )}
-          </div>
+          </form>
 
           {/* Divider */}
           <div className="relative flex py-2 items-center">
@@ -353,7 +382,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
                 type="submit"
                 className="px-6 py-3 rounded-2xl bg-[#1B3B2B] hover:bg-[#12281D] text-[#FDFBF7] font-semibold text-xs uppercase tracking-widest transition-colors cursor-pointer"
               >
-                Submit
+                Submit Code
               </button>
             </div>
           </form>
