@@ -14,20 +14,61 @@ import {
   RotateCcw,
   Search,
   ArrowLeft,
+  Lock,
+  LogOut,
+  AlertCircle,
+  KeyRound,
 } from "lucide-react";
 import { Guest } from "@/data/guestList";
 import { WEDDING_CONFIG } from "@/data/weddingConfig";
 import { getGuests, resetGuestListToDefault } from "@/lib/rsvpService";
 
+const AUTH_KEY = "nolen_syrel_admin_auth_v1";
+
 function AdminDashboardContent() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [passcode, setPasscode] = useState<string>("");
+  const [authError, setAuthError] = useState<string | null>(null);
+
   const [guests, setGuests] = useState<Guest[]>([]);
   const [filter, setFilter] = useState<"all" | "attending" | "declined" | "pending">("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   useEffect(() => {
-    setGuests(getGuests());
+    // Check if session previously authenticated
+    if (typeof window !== "undefined") {
+      const stored = sessionStorage.getItem(AUTH_KEY);
+      if (stored === "true") {
+        setIsAuthenticated(true);
+        setGuests(getGuests());
+      }
+    }
   }, []);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    const expectedPasscode = WEDDING_CONFIG.couple.adminPasscode;
+
+    if (passcode.trim() === expectedPasscode) {
+      setIsAuthenticated(true);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem(AUTH_KEY, "true");
+      }
+      setGuests(getGuests());
+    } else {
+      setAuthError("Incorrect admin passcode. Access denied.");
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setPasscode("");
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem(AUTH_KEY);
+    }
+  };
 
   const handleResetData = () => {
     if (window.confirm("Reset all guest RSVP state back to default sample dataset?")) {
@@ -44,9 +85,74 @@ function AdminDashboardContent() {
     setTimeout(() => setCopiedCode(null), 2500);
   };
 
+  // PASSCODE LOCK SCREEN IF NOT AUTHENTICATED
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#FDFBF7] text-[#2E3834] flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-[#FFFFFF] border border-[#E2D9CE] rounded-3xl p-8 sm:p-10 shadow-lg space-y-6 text-center">
+          <div className="w-16 h-16 mx-auto rounded-full bg-[#EBF2ED] border border-[#38664F]/30 flex items-center justify-center text-[#1B3B2B] shadow-sm">
+            <Lock className="w-7 h-7 text-[#1B3B2B]" />
+          </div>
+
+          <div className="space-y-1">
+            <span className="font-script text-3xl text-[#C87A68] block">
+              Couple Access Only
+            </span>
+            <h1 className="text-2xl font-serif font-bold text-[#1B3B2B]">
+              Admin Security Passcode
+            </h1>
+            <p className="text-xs text-[#6B7C75] font-serif">
+              Please enter the passcode to access guest RSVPs, meal orders, and data downloads.
+            </p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4 pt-2">
+            <div className="space-y-2 text-left">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#1B3B2B] flex items-center space-x-1.5">
+                <KeyRound className="w-3.5 h-3.5 text-[#C87A68]" />
+                <span>Enter Admin PIN / Passcode</span>
+              </label>
+              <input
+                type="password"
+                value={passcode}
+                onChange={(e) => setPasscode(e.target.value)}
+                placeholder="e.g. 2027"
+                required
+                className="w-full px-4 py-3 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] text-center font-mono placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] text-base"
+              />
+            </div>
+
+            {authError && (
+              <div className="p-3 rounded-xl bg-[#F9EBE8] border border-[#E8B4A8] text-[#A65747] text-xs flex items-center space-x-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-[#C87A68]" />
+                <span>{authError}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="w-full py-3.5 rounded-full bg-[#1B3B2B] hover:bg-[#12281D] text-[#FDFBF7] font-semibold text-xs uppercase tracking-widest transition-colors cursor-pointer shadow"
+            >
+              Unlock Dashboard
+            </button>
+          </form>
+
+          <div className="pt-4 border-t border-[#E2D9CE]">
+            <Link
+              href="/wedding"
+              className="inline-flex items-center space-x-1 text-xs text-[#6B7C75] hover:text-[#C87A68] font-serif"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Return to Public Wedding Site</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Stats Calculations
   const totalSubmitted = guests.filter((g) => g.rsvpSubmitted).length;
-  
   const attendingPrimaryCount = guests.filter((g) => g.rsvpSubmitted && g.attending).length;
   const attendingPlusOneCount = guests.filter(
     (g) => g.rsvpSubmitted && g.attending && g.plusOne?.attending
@@ -86,7 +192,8 @@ function AdminDashboardContent() {
     const nameMatch =
       !query ||
       `${g.firstName} ${g.lastName}`.toLowerCase().includes(query) ||
-      g.code.toLowerCase().includes(query);
+      g.code.toLowerCase().includes(query) ||
+      (g.email && g.email.toLowerCase().includes(query));
 
     return matchesFilter && nameMatch;
   });
@@ -97,6 +204,7 @@ function AdminDashboardContent() {
       "Code",
       "First Name",
       "Last Name",
+      "Email",
       "Status",
       "Attending",
       "Entree",
@@ -107,7 +215,6 @@ function AdminDashboardContent() {
       "+1 Last Name",
       "+1 Entree",
       "+1 Dietary Notes",
-      "Song Request",
       "Message",
       "Updated At",
     ];
@@ -116,6 +223,7 @@ function AdminDashboardContent() {
       g.code,
       g.firstName,
       g.lastName,
+      g.email || "",
       g.rsvpSubmitted ? "Responded" : "Pending",
       g.attending ? "Yes" : g.rsvpSubmitted ? "No" : "",
       g.mealPreference || "",
@@ -126,7 +234,6 @@ function AdminDashboardContent() {
       g.plusOne?.lastName || "",
       g.plusOne?.mealPreference || "",
       `"${(g.plusOne?.dietaryRestrictions || "").replace(/"/g, '""')}"`,
-      `"${(g.songRequest || "").replace(/"/g, '""')}"`,
       `"${(g.message || "").replace(/"/g, '""')}"`,
       g.updatedAt || "",
     ]);
@@ -159,6 +266,9 @@ function AdminDashboardContent() {
             </Link>
             <h1 className="text-3xl font-serif font-bold text-[#1B3B2B] flex items-center space-x-3">
               <span>RSVP Management Dashboard</span>
+              <span className="text-xs font-mono font-normal px-3 py-1 rounded-full bg-[#EBF2ED] text-[#1B3B2B] border border-[#38664F]/30">
+                Secured
+              </span>
             </h1>
           </div>
 
@@ -176,6 +286,14 @@ function AdminDashboardContent() {
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset Data</span>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2.5 rounded-full bg-[#F9EBE8] hover:bg-[#E8B4A8] border border-[#E8B4A8] text-[#A65747] text-xs font-semibold uppercase tracking-wider transition-colors flex items-center space-x-1.5 cursor-pointer"
+              title="Lock Admin Session"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Lock</span>
             </button>
           </div>
         </div>

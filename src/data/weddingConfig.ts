@@ -54,6 +54,7 @@ export const WEDDING_CONFIG = {
     brideFullName: "Syrel",
     hashtag: "#SyrelFoundHerNolen",
     initials: "N & S",
+    adminPasscode: process.env.NEXT_PUBLIC_ADMIN_PASSCODE || "2027",
   },
   date: {
     fullDate: "Saturday, October 2, 2027",
