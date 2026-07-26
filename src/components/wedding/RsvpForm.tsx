@@ -16,6 +16,7 @@ import {
   RotateCcw,
   AlertCircle,
   Heart,
+  Sparkles,
 } from "lucide-react";
 import { Guest } from "@/data/guestList";
 import { WEDDING_CONFIG } from "@/data/weddingConfig";
@@ -33,6 +34,7 @@ interface RsvpFormProps {
 }
 
 export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProps) {
+  // Step State: 1 = Lookup, 2 = Primary Attendance & Meal, 3 = +1 Guest Details, 4 = Song & Note, 5 = Confirmation
   const [step, setStep] = useState<number>(1);
   const [nameQuery, setNameQuery] = useState<string>(initialName || "");
   const [codeQuery, setCodeQuery] = useState<string>(initialCode || "");
@@ -40,13 +42,13 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
   const [searchResults, setSearchResults] = useState<Guest[]>([]);
   const [lookupError, setLookupError] = useState<string | null>(null);
 
-  // Form Fields
+  // Primary Guest Form Fields
   const [attending, setAttending] = useState<boolean>(true);
   const [mealPreference, setMealPreference] = useState<string>(WEDDING_CONFIG.meals[0].id);
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string>("");
 
-  // +1 Fields
-  const [bringingPlusOne, setBringingPlusOne] = useState<boolean>(false);
+  // +1 Guest Form Fields
+  const [bringingPlusOne, setBringingPlusOne] = useState<boolean>(true);
   const [plusOneFirstName, setPlusOneFirstName] = useState<string>("");
   const [plusOneLastName, setPlusOneLastName] = useState<string>("");
   const [plusOneMeal, setPlusOneMeal] = useState<string>(WEDDING_CONFIG.meals[0].id);
@@ -77,12 +79,16 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
       setAttending(guest.attending ?? true);
       setMealPreference(guest.mealPreference || WEDDING_CONFIG.meals[0].id);
       setDietaryRestrictions(guest.dietaryRestrictions || "");
-      if (guest.allowedPlusOne && guest.plusOne) {
-        setBringingPlusOne(guest.plusOne.attending);
-        setPlusOneFirstName(guest.plusOne.firstName || "");
-        setPlusOneLastName(guest.plusOne.lastName || "");
-        setPlusOneMeal(guest.plusOne.mealPreference || WEDDING_CONFIG.meals[0].id);
-        setPlusOneDietary(guest.plusOne.dietaryRestrictions || "");
+      if (guest.allowedPlusOne) {
+        if (guest.plusOne) {
+          setBringingPlusOne(guest.plusOne.attending);
+          setPlusOneFirstName(guest.plusOne.firstName || "");
+          setPlusOneLastName(guest.plusOne.lastName || "");
+          setPlusOneMeal(guest.plusOne.mealPreference || WEDDING_CONFIG.meals[0].id);
+          setPlusOneDietary(guest.plusOne.dietaryRestrictions || "");
+        } else {
+          setBringingPlusOne(true);
+        }
       }
       setSongRequest(guest.songRequest || "");
       setMessage(guest.message || "");
@@ -90,6 +96,16 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
     } else {
       setAttending(true);
       setMealPreference(WEDDING_CONFIG.meals[0].id);
+      setDietaryRestrictions("");
+      if (guest.allowedPlusOne) {
+        setBringingPlusOne(true);
+        setPlusOneFirstName("");
+        setPlusOneLastName("");
+        setPlusOneMeal(WEDDING_CONFIG.meals[0].id);
+        setPlusOneDietary("");
+      } else {
+        setBringingPlusOne(false);
+      }
       setStep(2);
     }
   };
@@ -105,7 +121,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
 
     if (results.length === 0) {
       setLookupError(
-        `We couldn't find "${query}" on our guest list. Please double check spelling or enter your unique invitation code below.`
+        `We couldn't find "${query}" on our guest list. Please check your spelling or enter your invitation code below.`
       );
     } else if (results.length === 1) {
       selectGuest(results[0]);
@@ -194,24 +210,65 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
     setStep(1);
   };
 
+  // Helper for step breadcrumbs
+  const getStepProgress = () => {
+    if (step === 1) return null;
+    const totalSteps = selectedGuest?.allowedPlusOne && attending ? 4 : 3;
+    let currentDisplayStep = 1;
+    if (step === 2) currentDisplayStep = 1;
+    if (step === 3) currentDisplayStep = 2;
+    if (step === 4) currentDisplayStep = selectedGuest?.allowedPlusOne && attending ? 3 : 2;
+    if (step === 5) currentDisplayStep = totalSteps;
+
+    return (
+      <div className="flex items-center justify-between text-xs font-serif text-[#6B7C75] border-b border-[#E2D9CE] pb-3">
+        <span className="font-bold text-[#1B3B2B]">
+          Step {currentDisplayStep} of {totalSteps}
+        </span>
+        <div className="flex gap-1.5">
+          {Array.from({ length: totalSteps }).map((_, i) => (
+            <span
+              key={i}
+              className={`h-1.5 rounded-full transition-all ${
+                i + 1 === currentDisplayStep
+                  ? "w-6 bg-[#C87A68]"
+                  : i + 1 < currentDisplayStep
+                  ? "w-3 bg-[#1B3B2B]"
+                  : "w-3 bg-[#E2D9CE]"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="w-full max-w-2xl mx-auto bg-[#FFFFFF] border border-[#E2D9CE] rounded-3xl p-6 sm:p-10 shadow-lg space-y-8">
       {/* Header Indicator */}
       {selectedGuest && (
-        <div className="flex items-center justify-between border-b border-[#E2D9CE] pb-4">
-          <div className="flex items-center space-x-2">
-            <Heart className="w-4 h-4 text-[#C87A68] fill-[#C87A68]" />
-            <span className="text-sm font-serif font-bold text-[#1B3B2B]">
-              RSVP for {selectedGuest.firstName} {selectedGuest.lastName}
-            </span>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Heart className="w-4 h-4 text-[#C87A68] fill-[#C87A68]" />
+              <span className="text-sm font-serif font-bold text-[#1B3B2B]">
+                RSVP for {selectedGuest.firstName} {selectedGuest.lastName}
+              </span>
+              {selectedGuest.allowedPlusOne && (
+                <span className="px-2.5 py-0.5 rounded-full bg-[#EBF2ED] text-[#1B3B2B] text-[10px] font-bold uppercase tracking-wider border border-[#38664F]/30">
+                  +1 Included
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleResetGuest}
+              className="text-xs text-[#6B7C75] hover:text-[#C87A68] flex items-center space-x-1 cursor-pointer transition-colors"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Not you? Change</span>
+            </button>
           </div>
-          <button
-            onClick={handleResetGuest}
-            className="text-xs text-[#6B7C75] hover:text-[#C87A68] flex items-center space-x-1 cursor-pointer transition-colors"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Not you? Change</span>
-          </button>
+          {getStepProgress()}
         </div>
       )}
 
@@ -315,7 +372,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
         </div>
       )}
 
-      {/* STEP 2: ATTENDANCE & MEAL PREFERENCE */}
+      {/* STEP 2: PRIMARY GUEST ATTENDANCE & MEAL PREFERENCE */}
       {step === 2 && selectedGuest && (
         <div className="space-y-6">
           <div className="text-center space-y-1">
@@ -329,6 +386,19 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
               {WEDDING_CONFIG.date.fullDate} • {WEDDING_CONFIG.venue.ceremony.name}
             </p>
           </div>
+
+          {/* Plus-One Callout Banner on Step 2 */}
+          {selectedGuest.allowedPlusOne && (
+            <div className="p-4 rounded-2xl bg-[#EBF2ED] border border-[#38664F]/30 text-[#1B3B2B] flex items-center space-x-3 text-xs sm:text-sm">
+              <Sparkles className="w-5 h-5 text-[#C87A68] shrink-0" />
+              <div>
+                <strong className="font-serif font-bold text-[#1B3B2B]">Your invitation includes a Plus One (+1)!</strong>
+                <p className="text-[#2E3834] text-xs mt-0.5">
+                  You will be prompted to enter your guest&apos;s name and dinner selection in the next step.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Attendance Buttons */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -470,7 +540,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
         </div>
       )}
 
-      {/* STEP 3: PLUS-ONE DETAILS */}
+      {/* STEP 3: PLUS-ONE GUEST DETAILS */}
       {step === 3 && selectedGuest && selectedGuest.allowedPlusOne && (
         <div className="space-y-6">
           <div className="text-center space-y-1">
@@ -480,11 +550,12 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
             <h3 className="text-3xl font-serif font-bold text-[#1B3B2B]">
               Plus One (+1) Information
             </h3>
-            <p className="text-[#2E3834] text-sm">
-              Your invitation includes a guest (+1). Will you be bringing a guest?
+            <p className="text-[#2E3834] text-sm font-serif">
+              {selectedGuest.firstName}&apos;s invitation includes a Plus One (+1) guest.
             </p>
           </div>
 
+          {/* Toggle Buttons */}
           <div className="grid grid-cols-2 gap-4">
             <button
               type="button"
@@ -510,11 +581,15 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
             </button>
           </div>
 
+          {/* Input Fields for +1 */}
           {bringingPlusOne && (
             <div className="space-y-4 pt-4 border-t border-[#E2D9CE]">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-[#C87A68]">
-                Guest (+1) Details
-              </h4>
+              <div className="flex items-center space-x-2 text-[#C87A68]">
+                <UserPlus className="w-4 h-4" />
+                <h4 className="text-xs font-semibold uppercase tracking-wider">
+                  Guest (+1) Personal &amp; Dinner Selection
+                </h4>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
@@ -525,7 +600,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
                     onChange={(e) => setPlusOneFirstName(e.target.value)}
                     placeholder="Guest's First Name"
                     required
-                    className="w-full px-4 py-3 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] text-sm"
+                    className="w-full px-4 py-3 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] text-sm font-serif"
                   />
                 </div>
                 <div className="space-y-1">
@@ -536,7 +611,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
                     onChange={(e) => setPlusOneLastName(e.target.value)}
                     placeholder="Guest's Last Name"
                     required
-                    className="w-full px-4 py-3 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] text-sm"
+                    className="w-full px-4 py-3 rounded-2xl bg-[#FDFBF7] border border-[#E2D9CE] text-[#1B3B2B] placeholder-[#6B7C75] focus:outline-none focus:border-[#C87A68] text-sm font-serif"
                   />
                 </div>
               </div>
@@ -690,7 +765,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
             <h3 className="text-3xl font-serif font-bold text-[#1B3B2B]">
               {selectedGuest.attending ? "RSVP Confirmed!" : "Response Recorded"}
             </h3>
-            <p className="text-[#2E3834] text-sm">
+            <p className="text-[#2E3834] text-sm font-serif">
               We look forward to seeing you, {selectedGuest.firstName}!
             </p>
           </div>
@@ -739,18 +814,25 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
                   </div>
                 </div>
 
-                {selectedGuest.plusOne && selectedGuest.plusOne.attending && (
+                {/* Plus-One Status in Summary */}
+                {selectedGuest.allowedPlusOne && (
                   <div className="grid grid-cols-2 gap-4 bg-[#FFFFFF] p-4 rounded-2xl border border-[#E2D9CE]">
                     <div>
-                      <span className="text-[#6B7C75] block text-[11px] font-serif">Plus-One (+1)</span>
+                      <span className="text-[#6B7C75] block text-[11px] font-serif">Plus-One (+1) Status</span>
                       <span className="font-bold text-[#1B3B2B] font-serif">
-                        {selectedGuest.plusOne.firstName} {selectedGuest.plusOne.lastName}
+                        {selectedGuest.plusOne?.attending && selectedGuest.plusOne.firstName
+                          ? `${selectedGuest.plusOne.firstName} ${selectedGuest.plusOne.lastName || ""}`
+                          : selectedGuest.plusOne?.attending
+                          ? "Attending"
+                          : "Not Bringing +1"}
                       </span>
                     </div>
                     <div>
                       <span className="text-[#6B7C75] block text-[11px] font-serif">Plus-One Meal</span>
                       <span className="font-semibold text-[#2E3834]">
-                        {WEDDING_CONFIG.meals.find((m) => m.id === selectedGuest.plusOne?.mealPreference)?.name || "Selected"}
+                        {selectedGuest.plusOne?.attending && selectedGuest.plusOne.mealPreference
+                          ? WEDDING_CONFIG.meals.find((m) => m.id === selectedGuest.plusOne?.mealPreference)?.name || "Selected"
+                          : "N/A"}
                       </span>
                     </div>
                   </div>
@@ -779,7 +861,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
               onClick={() => setStep(2)}
               className="flex-1 py-3 rounded-full bg-[#F4EFEA] hover:bg-[#E2D9CE] border border-[#E2D9CE] text-[#1B3B2B] font-semibold text-xs uppercase tracking-widest transition-colors text-center cursor-pointer"
             >
-              Update Response
+              Update / Edit Response
             </button>
             <button
               onClick={handleResetGuest}
