@@ -20,10 +20,13 @@ import {
   KeyRound,
   Loader2,
   RefreshCw,
+  UserPlus,
+  Plus,
 } from "lucide-react";
 import { Guest } from "@/data/guestList";
 import {
   fetchAdminGuests,
+  addNewGuest,
   resetGuestListToDefault,
 } from "@/lib/rsvpService";
 
@@ -42,6 +45,16 @@ function AdminDashboardContent() {
   const [filter, setFilter] = useState<"all" | "attending" | "declined" | "pending">("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  // Add Guest Modal / Form State
+  const [showAddGuest, setShowAddGuest] = useState<boolean>(false);
+  const [newFirstName, setNewFirstName] = useState<string>("");
+  const [newLastName, setNewLastName] = useState<string>("");
+  const [newEmail, setNewEmail] = useState<string>("");
+  const [newCode, setNewCode] = useState<string>("");
+  const [newAllowedPlusOne, setNewAllowedPlusOne] = useState<boolean>(true);
+  const [isAddingGuest, setIsAddingGuest] = useState<boolean>(false);
+  const [addGuestError, setAddGuestError] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if session previously authenticated
@@ -111,6 +124,40 @@ function AdminDashboardContent() {
     if (window.confirm("Reset all guest RSVP state back to default sample dataset?")) {
       const reset = resetGuestListToDefault();
       setGuests(reset);
+    }
+  };
+
+  const handleAddGuestSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddGuestError(null);
+    if (!newFirstName.trim() || !newLastName.trim()) {
+      setAddGuestError("First name and last name are required.");
+      return;
+    }
+
+    const savedPin =
+      (typeof window !== "undefined" ? sessionStorage.getItem(PIN_KEY) : null) || passcode;
+
+    setIsAddingGuest(true);
+    const res = await addNewGuest(savedPin, {
+      firstName: newFirstName,
+      lastName: newLastName,
+      email: newEmail,
+      allowedPlusOne: newAllowedPlusOne,
+      code: newCode.trim() || undefined,
+    });
+    setIsAddingGuest(false);
+
+    if (res.success && res.guests) {
+      setGuests(res.guests);
+      setNewFirstName("");
+      setNewLastName("");
+      setNewEmail("");
+      setNewCode("");
+      setNewAllowedPlusOne(true);
+      setShowAddGuest(false);
+    } else {
+      setAddGuestError(res.error || "Failed to add guest.");
     }
   };
 
@@ -314,6 +361,13 @@ function AdminDashboardContent() {
 
           <div className="flex flex-wrap items-center gap-3">
             <button
+              onClick={() => setShowAddGuest(!showAddGuest)}
+              className="px-5 py-2.5 rounded-full bg-[#C87A68] hover:bg-[#B26756] text-[#FFFFFF] font-semibold text-xs uppercase tracking-widest transition-colors flex items-center space-x-2 shadow cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Add Guest</span>
+            </button>
+            <button
               onClick={handleRefresh}
               disabled={isRefreshing}
               className="px-4 py-2.5 rounded-full bg-[#FFFFFF] hover:bg-[#F4EFEA] border border-[#E2D9CE] text-[#1B3B2B] text-xs font-semibold uppercase tracking-wider transition-colors flex items-center space-x-1.5 cursor-pointer disabled:opacity-60"
@@ -345,6 +399,98 @@ function AdminDashboardContent() {
             </button>
           </div>
         </div>
+
+        {/* Add New Guest Panel */}
+        {showAddGuest && (
+          <div className="bg-[#FFFFFF] border-2 border-[#C87A68]/40 rounded-3xl p-6 space-y-4 shadow-md">
+            <div className="flex items-center justify-between border-b border-[#E2D9CE] pb-3">
+              <div className="flex items-center space-x-2">
+                <UserPlus className="w-5 h-5 text-[#C87A68]" />
+                <h3 className="font-serif font-bold text-xl text-[#1B3B2B]">
+                  Add New Guest to Invitation List
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowAddGuest(false)}
+                className="text-xs text-[#6B7C75] hover:text-[#1B3B2B] uppercase font-semibold cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+
+            <form onSubmit={handleAddGuestSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-[#1B3B2B]">First Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newFirstName}
+                    onChange={(e) => setNewFirstName(e.target.value)}
+                    placeholder="e.g. Emily"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#FDFBF7] border border-[#E2D9CE] text-xs text-[#1B3B2B] focus:outline-none focus:border-[#C87A68]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-[#1B3B2B]">Last Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newLastName}
+                    onChange={(e) => setNewLastName(e.target.value)}
+                    placeholder="e.g. Clark"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#FDFBF7] border border-[#E2D9CE] text-xs text-[#1B3B2B] focus:outline-none focus:border-[#C87A68]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-[#1B3B2B]">Email (Optional)</label>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="emily@example.com"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#FDFBF7] border border-[#E2D9CE] text-xs text-[#1B3B2B] focus:outline-none focus:border-[#C87A68]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-[#1B3B2B]">Custom Code (Optional)</label>
+                  <input
+                    type="text"
+                    value={newCode}
+                    onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                    placeholder="Auto: NOLEN-SYREL-009"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#FDFBF7] border border-[#E2D9CE] text-xs font-mono uppercase text-[#1B3B2B] focus:outline-none focus:border-[#C87A68]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+                <label className="inline-flex items-center space-x-2 text-xs font-semibold text-[#1B3B2B] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newAllowedPlusOne}
+                    onChange={(e) => setNewAllowedPlusOne(e.target.checked)}
+                    className="rounded border-[#E2D9CE] text-[#1B3B2B] focus:ring-[#1B3B2B]"
+                  />
+                  <span>Include a Plus-One (+1) on this invitation</span>
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={isAddingGuest}
+                  className="px-6 py-2.5 rounded-full bg-[#1B3B2B] hover:bg-[#12281D] disabled:opacity-60 text-[#FDFBF7] text-xs font-semibold uppercase tracking-widest transition-colors flex items-center space-x-2 cursor-pointer"
+                >
+                  {isAddingGuest ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  <span>{isAddingGuest ? "Adding..." : "Save Guest"}</span>
+                </button>
+              </div>
+
+              {addGuestError && (
+                <p className="text-xs text-[#A65747] font-semibold">{addGuestError}</p>
+              )}
+            </form>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

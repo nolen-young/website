@@ -13,6 +13,7 @@ export interface RsvpPayload {
 
 interface ApiResponse {
   success: boolean;
+  authenticated?: boolean;
   fallback?: boolean;
   error?: string;
   guest?: Guest | null;
@@ -40,6 +41,10 @@ async function callRsvpBackend(body: Record<string, unknown>): Promise<ApiRespon
       const data = (await res.json()) as ApiResponse;
       // If proxy returned 401 (invalid admin passcode), return it immediately without falling back
       if (res.status === 401) {
+        return data;
+      }
+      // If proxy authenticated admin even when GOOGLE_SCRIPT_URL is not yet configured
+      if (data.authenticated && data.fallback) {
         return data;
       }
       // If proxy succeeded (and didn't signal missing env var fallback)
@@ -254,6 +259,13 @@ export async function fetchAdminGuests(passcode: string): Promise<{
         source: "cloud",
       };
     }
+    if (apiRes.authenticated && apiRes.fallback) {
+      return {
+        authenticated: true,
+        guests: getLocalGuests(),
+        source: "local",
+      };
+    }
   }
 
   // Fallback for local development when Cloudflare proxy / Google Sheet is not configured
@@ -272,6 +284,67 @@ export async function fetchAdminGuests(passcode: string): Promise<{
     source: "local",
     error: "Incorrect admin passcode. Access denied.",
   };
+}
+
+/**
+ * Add a new guest via Admin Dashboard (saves to Google Sheet if connected, or localStorage).
+ */
+export async function addNewGuest(
+  passcode: string,
+  newGuestInput: {
+    firstName: string;
+    lastName: string;
+    email?: string;
+    allowedPlusOne: boolean;
+    code?: string;
+  }
+): Promise<{ success: boolean; guest?: Guest; guests?: Guest[]; error?: string }> {
+  const apiRes = await callRsvpBackend({
+    action: "add_guest",
+    passcode: passcode.trim(),
+    ...newGuestInput,
+  });
+
+  if (apiRes && apiRes.success && Array.isArray(apiRes.guests)) {
+    saveLocalGuests(apiRes.guests);
+    return {
+      success: true,
+      guest: apiRes.guest || undefined,
+      guests: apiRes.guests,
+    };
+  }
+
+  if (apiRes && !apiRes.success && !apiRes.fallback) {
+    return {
+      success: false,
+      error: apiRes.error || "Failed to add guest.",
+    };
+  }
+
+  // Local fallback
+  const guests = getLocalGuests();
+  const nextNum = String(guests.length + 1).padStart(3, "0");
+  const code = (newGuestInput.code || `NOLEN-SYREL-${nextNum}`).trim().toUpperCase();
+
+  if (guests.some((g) => g.code.toUpperCase() === code)) {
+    return { success: false, error: `Guest code ${code} already exists.` };
+  }
+
+  const created: Guest = {
+    id: `g-${Date.now()}`,
+    code,
+    firstName: newGuestInput.firstName.trim(),
+    lastName: newGuestInput.lastName.trim(),
+    email: newGuestInput.email?.trim() || undefined,
+    allowedPlusOne: newGuestInput.allowedPlusOne,
+    maxPlusOnes: newGuestInput.allowedPlusOne ? 1 : 0,
+    rsvpSubmitted: false,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const updated = [...guests, created];
+  saveLocalGuests(updated);
+  return { success: true, guest: created, guests: updated };
 }
 
 /**

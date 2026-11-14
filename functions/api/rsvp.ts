@@ -37,27 +37,13 @@ export const onRequest = async (context: {
   const adminPasscode = env.ADMIN_PASSCODE || env.NEXT_PUBLIC_ADMIN_PASSCODE || "2027";
   const webhookSecret = env.GOOGLE_WEBHOOK_SECRET || "";
 
-  if (!scriptUrl) {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        fallback: true,
-        error: "GOOGLE_SCRIPT_URL is not configured in Cloudflare environment variables.",
-      }),
-      {
-        status: 503,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
-  }
-
   try {
     if (request.method === "POST") {
       const body = (await request.json()) as Record<string, unknown>;
       const action = body.action as string | undefined;
 
-      // Server-side Admin Passcode Verification before calling Google Sheets
-      if (action === "admin_list" || action === "admin_verify") {
+      // Server-side Admin Passcode Verification ALWAYS runs first
+      if (action === "admin_list" || action === "admin_verify" || action === "add_guest") {
         const providedPin = String(body.passcode || "").trim();
         if (providedPin !== adminPasscode) {
           return new Response(
@@ -71,6 +57,37 @@ export const onRequest = async (context: {
             }
           );
         }
+
+        // If GOOGLE_SCRIPT_URL is not set yet, tell client that passcode IS valid
+        // so it can unlock the dashboard in Local Demo Mode!
+        if (!scriptUrl) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              authenticated: true,
+              fallback: true,
+              message: "Admin authenticated via Cloudflare. GOOGLE_SCRIPT_URL is not set yet, using local storage.",
+            }),
+            {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+      }
+
+      if (!scriptUrl) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            fallback: true,
+            error: "GOOGLE_SCRIPT_URL is not configured in Cloudflare environment variables.",
+          }),
+          {
+            status: 503,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
 
       // Forward request to Google Apps Script Web App
@@ -94,6 +111,20 @@ export const onRequest = async (context: {
         status: googleRes.ok ? 200 : googleRes.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (!scriptUrl) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          fallback: true,
+          error: "GOOGLE_SCRIPT_URL is not configured in Cloudflare environment variables.",
+        }),
+        {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     if (request.method === "GET") {

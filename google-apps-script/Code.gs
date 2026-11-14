@@ -220,12 +220,56 @@ function doPost(e) {
 
     // 3. Admin Dashboard Full Guest List
     if (action === "admin_list") {
-      // If called directly without Cloudflare proxy, verify fallback passcode
-      if (data.passcode && String(data.passcode).trim() !== FALLBACK_ADMIN_PASSCODE && !data.secret) {
-        // Note: When called via Cloudflare proxy, Cloudflare already verifies ADMIN_PASSCODE
-      }
       const guests = getAllGuestsFromSheet(sheet);
       return jsonResponse({ success: true, guests: guests });
+    }
+
+    // 3b. Add a New Guest from Admin Dashboard
+    if (action === "add_guest") {
+      const guests = getAllGuestsFromSheet(sheet);
+      const firstName = String(data.firstName || "").trim();
+      const lastName = String(data.lastName || "").trim();
+      const email = String(data.email || "").trim();
+      const allowedPlusOne = Boolean(data.allowedPlusOne);
+
+      if (!firstName || !lastName) {
+        return jsonResponse({ success: false, error: "First name and last name are required." });
+      }
+
+      // Generate or use provided unique code
+      let code = String(data.code || "").trim().toUpperCase();
+      if (!code) {
+        const nextNum = String(guests.length + 1).padStart(3, "0");
+        code = "NOLEN-SYREL-" + nextNum;
+      }
+
+      // Check duplicate code
+      if (guests.some((g) => g.code.toUpperCase() === code)) {
+        return jsonResponse({ success: false, error: "Guest code " + code + " already exists." });
+      }
+
+      const newRow = [
+        code,
+        firstName,
+        lastName,
+        email,
+        allowedPlusOne,
+        "Pending",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        new Date().toISOString(),
+      ];
+      sheet.appendRow(newRow);
+      SpreadsheetApp.flush();
+
+      const updatedGuests = getAllGuestsFromSheet(sheet);
+      const createdGuest = updatedGuests.find((g) => g.code.toUpperCase() === code) || null;
+      return jsonResponse({ success: true, guest: createdGuest, guests: updatedGuests });
     }
 
     // 4. Submit or Update RSVP Response
