@@ -92,6 +92,8 @@ export function getLocalGuests(): Guest[] {
   }
 }
 
+export const getGuests = getLocalGuests;
+
 /**
  * Save guests back to localStorage.
  */

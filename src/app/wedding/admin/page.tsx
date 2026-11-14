@@ -18,17 +18,25 @@ import {
   LogOut,
   AlertCircle,
   KeyRound,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { Guest } from "@/data/guestList";
-import { WEDDING_CONFIG } from "@/data/weddingConfig";
-import { getGuests, resetGuestListToDefault } from "@/lib/rsvpService";
+import {
+  fetchAdminGuests,
+  resetGuestListToDefault,
+} from "@/lib/rsvpService";
 
 const AUTH_KEY = "nolen_syrel_admin_auth_v1";
+const PIN_KEY = "nolen_syrel_admin_pin_v1";
 
 function AdminDashboardContent() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [passcode, setPasscode] = useState<string>("");
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isAuthenticating, setIsAuthenticating] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [dataSource, setDataSource] = useState<"cloud" | "local">("local");
 
   const [guests, setGuests] = useState<Guest[]>([]);
   const [filter, setFilter] = useState<"all" | "attending" | "declined" | "pending">("all");
@@ -39,26 +47,54 @@ function AdminDashboardContent() {
     // Check if session previously authenticated
     if (typeof window !== "undefined") {
       const stored = sessionStorage.getItem(AUTH_KEY);
-      if (stored === "true") {
-        setIsAuthenticated(true);
-        setGuests(getGuests());
+      const savedPin = sessionStorage.getItem(PIN_KEY) || "";
+      if (stored === "true" && savedPin) {
+        setPasscode(savedPin);
+        fetchAdminGuests(savedPin).then((res) => {
+          if (res.authenticated) {
+            setIsAuthenticated(true);
+            setGuests(res.guests);
+            setDataSource(res.source);
+          } else {
+            sessionStorage.removeItem(AUTH_KEY);
+            sessionStorage.removeItem(PIN_KEY);
+          }
+        });
       }
     }
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
-    const expectedPasscode = WEDDING_CONFIG.couple.adminPasscode;
+    setIsAuthenticating(true);
 
-    if (passcode.trim() === expectedPasscode) {
+    const res = await fetchAdminGuests(passcode);
+    setIsAuthenticating(false);
+
+    if (res.authenticated) {
       setIsAuthenticated(true);
+      setGuests(res.guests);
+      setDataSource(res.source);
       if (typeof window !== "undefined") {
         sessionStorage.setItem(AUTH_KEY, "true");
+        sessionStorage.setItem(PIN_KEY, passcode.trim());
       }
-      setGuests(getGuests());
     } else {
-      setAuthError("Incorrect admin passcode. Access denied.");
+      setAuthError(res.error || "Incorrect admin passcode. Access denied.");
+    }
+  };
+
+  const handleRefresh = async () => {
+    const savedPin =
+      (typeof window !== "undefined" ? sessionStorage.getItem(PIN_KEY) : null) || passcode;
+    if (!savedPin) return;
+    setIsRefreshing(true);
+    const res = await fetchAdminGuests(savedPin);
+    setIsRefreshing(false);
+    if (res.authenticated) {
+      setGuests(res.guests);
+      setDataSource(res.source);
     }
   };
 
@@ -67,6 +103,7 @@ function AdminDashboardContent() {
     setPasscode("");
     if (typeof window !== "undefined") {
       sessionStorage.removeItem(AUTH_KEY);
+      sessionStorage.removeItem(PIN_KEY);
     }
   };
 
@@ -131,9 +168,11 @@ function AdminDashboardContent() {
 
             <button
               type="submit"
-              className="w-full py-3.5 rounded-full bg-[#1B3B2B] hover:bg-[#12281D] text-[#FDFBF7] font-semibold text-xs uppercase tracking-widest transition-colors cursor-pointer shadow"
+              disabled={isAuthenticating}
+              className="w-full py-3.5 rounded-full bg-[#1B3B2B] hover:bg-[#12281D] disabled:opacity-60 text-[#FDFBF7] font-semibold text-xs uppercase tracking-widest transition-colors cursor-pointer shadow flex items-center justify-center space-x-2"
             >
-              Unlock Dashboard
+              {isAuthenticating && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>{isAuthenticating ? "Verifying..." : "Unlock Dashboard"}</span>
             </button>
           </form>
 
@@ -265,15 +304,23 @@ function AdminDashboardContent() {
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Public Wedding Site</span>
             </Link>
-            <h1 className="text-3xl font-serif font-bold text-[#1B3B2B] flex items-center space-x-3">
+            <h1 className="text-3xl font-serif font-bold text-[#1B3B2B] flex flex-wrap items-center gap-3">
               <span>RSVP Management Dashboard</span>
               <span className="text-xs font-mono font-normal px-3 py-1 rounded-full bg-[#EBF2ED] text-[#1B3B2B] border border-[#38664F]/30">
-                Secured
+                {dataSource === "cloud" ? "Live • Google Sheets" : "Local Demo Mode"}
               </span>
             </h1>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="px-4 py-2.5 rounded-full bg-[#FFFFFF] hover:bg-[#F4EFEA] border border-[#E2D9CE] text-[#1B3B2B] text-xs font-semibold uppercase tracking-wider transition-colors flex items-center space-x-1.5 cursor-pointer disabled:opacity-60"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-[#C87A68] ${isRefreshing ? "animate-spin" : ""}`} />
+              <span>{isRefreshing ? "Syncing..." : "Sync Sheet"}</span>
+            </button>
             <button
               onClick={handleExportCsv}
               className="px-5 py-2.5 rounded-full bg-[#1B3B2B] hover:bg-[#12281D] text-[#FDFBF7] font-semibold text-xs uppercase tracking-widest transition-colors flex items-center space-x-2 shadow cursor-pointer"

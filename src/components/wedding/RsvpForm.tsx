@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Heart,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { Guest } from "@/data/guestList";
 import { WEDDING_CONFIG } from "@/data/weddingConfig";
@@ -40,6 +41,8 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [searchResults, setSearchResults] = useState<Guest[]>([]);
   const [lookupError, setLookupError] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Primary Guest Form Fields
   const [attending, setAttending] = useState<boolean>(true);
@@ -55,21 +58,34 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
   const [message, setMessage] = useState<string>("");
 
   useEffect(() => {
-    if (initialCode) {
-      const match = findGuestByCode(initialCode);
-      if (match) {
-        selectGuest(match);
-      } else {
-        setLookupError(`Code "${initialCode}" was not found on the guest list.`);
-      }
-    } else if (initialName) {
-      setNameQuery(initialName);
-      const results = searchGuestsByName(initialName);
-      setSearchResults(results);
-      if (results.length === 1) {
-        selectGuest(results[0]);
+    let cancelled = false;
+    async function runInitialLookup() {
+      if (initialCode) {
+        setIsSearching(true);
+        const match = await findGuestByCode(initialCode);
+        if (cancelled) return;
+        setIsSearching(false);
+        if (match) {
+          selectGuest(match);
+        } else {
+          setLookupError(`Code "${initialCode}" was not found on the guest list.`);
+        }
+      } else if (initialName) {
+        setNameQuery(initialName);
+        setIsSearching(true);
+        const results = await searchGuestsByName(initialName);
+        if (cancelled) return;
+        setIsSearching(false);
+        setSearchResults(results);
+        if (results.length === 1) {
+          selectGuest(results[0]);
+        }
       }
     }
+    runInitialLookup();
+    return () => {
+      cancelled = true;
+    };
   }, [initialCode, initialName]);
 
   const selectGuest = (guest: Guest) => {
@@ -111,18 +127,17 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
     setLookupError(null);
     if (!query.trim()) {
       setSearchResults([]);
-      return;
     }
-    const results = searchGuestsByName(query);
-    setSearchResults(results);
   };
 
-  const handleNameSearchSubmit = (e: React.FormEvent) => {
+  const handleNameSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLookupError(null);
     if (!nameQuery.trim()) return;
 
-    const results = searchGuestsByName(nameQuery);
+    setIsSearching(true);
+    const results = await searchGuestsByName(nameQuery);
+    setIsSearching(false);
     setSearchResults(results);
 
     if (results.length === 0) {
@@ -134,12 +149,14 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
     }
   };
 
-  const handleCodeSearch = (e: React.FormEvent) => {
+  const handleCodeSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setLookupError(null);
     if (!codeQuery.trim()) return;
 
-    const match = findGuestByCode(codeQuery);
+    setIsSearching(true);
+    const match = await findGuestByCode(codeQuery);
+    setIsSearching(false);
     if (match) {
       selectGuest(match);
     } else {
@@ -165,8 +182,8 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
     }
   };
 
-  const handleSubmitFinal = () => {
-    if (!selectedGuest) return;
+  const handleSubmitFinal = async () => {
+    if (!selectedGuest || isSubmitting) return;
 
     const payload: RsvpPayload = {
       attending,
@@ -185,7 +202,10 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
       message,
     };
 
-    const updated = submitRsvp(selectedGuest.id, payload);
+    setIsSubmitting(true);
+    const { guest: updated } = await submitRsvp(selectedGuest, payload);
+    setIsSubmitting(false);
+
     if (updated) {
       setSelectedGuest(updated);
       setStep(5);
@@ -308,9 +328,11 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
               </div>
               <button
                 type="submit"
-                className="px-6 py-3.5 rounded-2xl bg-[#1B3B2B] hover:bg-[#12281D] text-[#FDFBF7] font-semibold text-xs uppercase tracking-widest transition-colors cursor-pointer shrink-0"
+                disabled={isSearching}
+                className="px-6 py-3.5 rounded-2xl bg-[#1B3B2B] hover:bg-[#12281D] disabled:opacity-60 text-[#FDFBF7] font-semibold text-xs uppercase tracking-widest transition-colors cursor-pointer shrink-0 flex items-center space-x-2"
               >
-                Search
+                {isSearching && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>{isSearching ? "Searching..." : "Search"}</span>
               </button>
             </div>
 
@@ -372,9 +394,11 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
               />
               <button
                 type="submit"
-                className="px-6 py-3 rounded-2xl bg-[#1B3B2B] hover:bg-[#12281D] text-[#FDFBF7] font-semibold text-xs uppercase tracking-widest transition-colors cursor-pointer"
+                disabled={isSearching}
+                className="px-6 py-3 rounded-2xl bg-[#1B3B2B] hover:bg-[#12281D] disabled:opacity-60 text-[#FDFBF7] font-semibold text-xs uppercase tracking-widest transition-colors cursor-pointer flex items-center space-x-2"
               >
-                Submit Code
+                {isSearching && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>{isSearching ? "Checking..." : "Submit Code"}</span>
               </button>
             </div>
           </form>
@@ -674,10 +698,15 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
 
             <button
               onClick={handleSubmitFinal}
-              className="px-8 py-3.5 rounded-full bg-[#1B3B2B] hover:bg-[#12281D] text-[#FDFBF7] font-semibold text-xs uppercase tracking-widest transition-all shadow-md flex items-center space-x-2 cursor-pointer"
+              disabled={isSubmitting}
+              className="px-8 py-3.5 rounded-full bg-[#1B3B2B] hover:bg-[#12281D] disabled:opacity-60 text-[#FDFBF7] font-semibold text-xs uppercase tracking-widest transition-all shadow-md flex items-center space-x-2 cursor-pointer"
             >
-              <Heart className="w-4 h-4 text-[#C87A68] fill-[#C87A68]" />
-              <span>Submit RSVP Response</span>
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin text-[#C87A68]" />
+              ) : (
+                <Heart className="w-4 h-4 text-[#C87A68] fill-[#C87A68]" />
+              )}
+              <span>{isSubmitting ? "Saving RSVP..." : "Submit RSVP Response"}</span>
             </button>
           </div>
         </div>
