@@ -33,11 +33,37 @@ export const onRequest = async (context: {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  const scriptUrl = env.GOOGLE_SCRIPT_URL || env.NEXT_PUBLIC_RSVP_WEBHOOK_URL;
-  const adminPasscode = env.ADMIN_PASSCODE || env.NEXT_PUBLIC_ADMIN_PASSCODE || "2027";
-  const webhookSecret = env.GOOGLE_WEBHOOK_SECRET || "";
+  const scriptUrl = (env.GOOGLE_SCRIPT_URL || env.NEXT_PUBLIC_RSVP_WEBHOOK_URL || "").trim();
+  const configuredPasscode = (env.ADMIN_PASSCODE || env.NEXT_PUBLIC_ADMIN_PASSCODE || "").trim();
+  const adminPasscode = configuredPasscode || "2027";
+  const webhookSecret = (env.GOOGLE_WEBHOOK_SECRET || "").trim();
+  const passcodeSource = env.ADMIN_PASSCODE
+    ? "ADMIN_PASSCODE"
+    : env.NEXT_PUBLIC_ADMIN_PASSCODE
+    ? "NEXT_PUBLIC_ADMIN_PASSCODE"
+    : "DEFAULT_2027";
 
   try {
+    // Allow quick GET /api/rsvp?action=status diagnostic check (never exposes actual secrets)
+    if (request.method === "GET") {
+      const url = new URL(request.url);
+      if (url.searchParams.get("action") === "status" || !scriptUrl) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            proxyActive: true,
+            hasGoogleScriptUrl: Boolean(scriptUrl),
+            passcodeSource,
+            passcodeLength: adminPasscode.length,
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
     if (request.method === "POST") {
       const body = (await request.json()) as Record<string, unknown>;
       const action = body.action as string | undefined;
@@ -49,7 +75,7 @@ export const onRequest = async (context: {
           return new Response(
             JSON.stringify({
               success: false,
-              error: "Incorrect admin passcode. Access denied.",
+              error: `Incorrect admin passcode (Cloudflare checked against ${passcodeSource}, length ${adminPasscode.length}).`,
             }),
             {
               status: 401,
@@ -66,6 +92,7 @@ export const onRequest = async (context: {
               success: true,
               authenticated: true,
               fallback: true,
+              passcodeSource,
               message: "Admin authenticated via Cloudflare. GOOGLE_SCRIPT_URL is not set yet, using local storage.",
             }),
             {
@@ -107,10 +134,27 @@ export const onRequest = async (context: {
       });
 
       const responseText = await googleRes.text();
-      return new Response(responseText, {
-        status: googleRes.ok ? 200 : googleRes.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      try {
+        const parsed = JSON.parse(responseText);
+        return new Response(JSON.stringify(parsed), {
+          status: googleRes.ok ? 200 : googleRes.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch {
+        // Google returned an HTML error page or login redirect instead of JSON
+        return new Response(
+          JSON.stringify({
+            success: false,
+            authenticated: true,
+            fallback: true,
+            error: "Google Apps Script URL did not return valid JSON (check that 'Who has access' is set to 'Anyone').",
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
     }
 
     if (!scriptUrl) {
@@ -143,10 +187,27 @@ export const onRequest = async (context: {
       });
 
       const responseText = await googleRes.text();
-      return new Response(responseText, {
-        status: googleRes.ok ? 200 : googleRes.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      try {
+        const parsed = JSON.parse(responseText);
+        return new Response(JSON.stringify(parsed), {
+          status: googleRes.ok ? 200 : googleRes.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch {
+        // Google returned an HTML error page or login redirect instead of JSON
+        return new Response(
+          JSON.stringify({
+            success: false,
+            authenticated: true,
+            fallback: true,
+            error: "Google Apps Script URL did not return valid JSON (check that 'Who has access' is set to 'Anyone').",
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
     }
 
     return new Response(

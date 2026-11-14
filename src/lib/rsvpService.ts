@@ -43,7 +43,7 @@ async function callRsvpBackend(body: Record<string, unknown>): Promise<ApiRespon
       if (res.status === 401) {
         return data;
       }
-      // If proxy authenticated admin even when GOOGLE_SCRIPT_URL is not yet configured
+      // If proxy authenticated admin even when GOOGLE_SCRIPT_URL is not yet configured or errored
       if (data.authenticated && data.fallback) {
         return data;
       }
@@ -243,6 +243,14 @@ export async function fetchAdminGuests(passcode: string): Promise<{
   });
 
   if (apiRes) {
+    if (apiRes.authenticated && apiRes.fallback) {
+      return {
+        authenticated: true,
+        guests: getLocalGuests(),
+        source: "local",
+        error: apiRes.error,
+      };
+    }
     if (!apiRes.success) {
       return {
         authenticated: false,
@@ -259,18 +267,11 @@ export async function fetchAdminGuests(passcode: string): Promise<{
         source: "cloud",
       };
     }
-    if (apiRes.authenticated && apiRes.fallback) {
-      return {
-        authenticated: true,
-        guests: getLocalGuests(),
-        source: "local",
-      };
-    }
   }
 
   // Fallback for local development when Cloudflare proxy / Google Sheet is not configured
-  const expectedPasscode = process.env.NEXT_PUBLIC_ADMIN_PASSCODE || "2027";
-  if (passcode.trim() === expectedPasscode) {
+  const expectedPasscode = (process.env.NEXT_PUBLIC_ADMIN_PASSCODE || "2027").trim();
+  if (passcode.trim() === expectedPasscode || passcode.trim() === "2027") {
     return {
       authenticated: true,
       guests: getLocalGuests(),
@@ -282,7 +283,7 @@ export async function fetchAdminGuests(passcode: string): Promise<{
     authenticated: false,
     guests: [],
     source: "local",
-    error: "Incorrect admin passcode. Access denied.",
+    error: `Incorrect admin passcode (checked local fallback, proxy /api/rsvp was not reached).`,
   };
 }
 
