@@ -2,7 +2,6 @@ export interface PlusOneData {
   attending: boolean;
   firstName?: string;
   lastName?: string;
-  mealPreference?: string;
   dietaryRestrictions?: string;
 }
 
@@ -16,7 +15,6 @@ export interface Guest {
   maxPlusOnes: number;
   rsvpSubmitted: boolean;
   attending?: boolean;
-  mealPreference?: string;
   dietaryRestrictions?: string;
   plusOne?: PlusOneData;
   songRequest?: string;
@@ -45,13 +43,11 @@ export const INITIAL_GUEST_LIST: Guest[] = [
     maxPlusOnes: 1,
     rsvpSubmitted: true,
     attending: true,
-    mealPreference: "filet",
     dietaryRestrictions: "None",
     plusOne: {
       attending: true,
       firstName: "Morgan",
       lastName: "Smith",
-      mealPreference: "salmon",
       dietaryRestrictions: "Gluten free",
     },
     songRequest: "September - Earth, Wind & Fire",

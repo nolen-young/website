@@ -29,7 +29,7 @@ We have created a personal wedding subsite at `/wedding` and an interactive RSVP
 1. Create a new Google Sheet named **Nolen & Syrel Wedding RSVPs**.
 2. Name the first tab **`Guests`** and create the following headers in Row 1:
    ```
-   Code | FirstName | LastName | Email | AllowedPlusOne | Status | Attending | Entree | DietaryNotes | PlusOneAttending | PlusOneFirstName | PlusOneLastName | PlusOneEntree | PlusOneDietary | Note | UpdatedAt
+   Code | FirstName | LastName | Email | AllowedPlusOne | Status | Attending | DietaryNotes | PlusOneAttending | PlusOneFirstName | PlusOneLastName | PlusOneDietary | Note | UpdatedAt
    ```
 3. Add your guest list below Row 1 (e.g. `NOLEN-SYREL-001 | Alex | Rivers | alex@example.com | TRUE | Pending | ...`).
 
@@ -63,19 +63,17 @@ function doPost(e) {
     // Update RSVP response columns
     sheet.getRange(rowIndex, 6).setValue("Responded"); // Status
     sheet.getRange(rowIndex, 7).setValue(data.attending ? "Yes" : "No"); // Attending
-    sheet.getRange(rowIndex, 8).setValue(data.mealPreference || ""); // Entree
-    sheet.getRange(rowIndex, 9).setValue(data.dietaryRestrictions || ""); // DietaryNotes
+    sheet.getRange(rowIndex, 8).setValue(data.dietaryRestrictions || ""); // DietaryNotes
     
     if (data.plusOne) {
-      sheet.getRange(rowIndex, 10).setValue(data.plusOne.attending ? "Yes" : "No");
-      sheet.getRange(rowIndex, 11).setValue(data.plusOne.firstName || "");
-      sheet.getRange(rowIndex, 12).setValue(data.plusOne.lastName || "");
-      sheet.getRange(rowIndex, 13).setValue(data.plusOne.mealPreference || "");
-      sheet.getRange(rowIndex, 14).setValue(data.plusOne.dietaryRestrictions || "");
+      sheet.getRange(rowIndex, 9).setValue(data.plusOne.attending ? "Yes" : "No");
+      sheet.getRange(rowIndex, 10).setValue(data.plusOne.firstName || "");
+      sheet.getRange(rowIndex, 11).setValue(data.plusOne.lastName || "");
+      sheet.getRange(rowIndex, 12).setValue(data.plusOne.dietaryRestrictions || "");
     }
     
-    sheet.getRange(rowIndex, 15).setValue(data.message || ""); // Note
-    sheet.getRange(rowIndex, 16).setValue(new Date().toISOString()); // UpdatedAt
+    sheet.getRange(rowIndex, 13).setValue(data.message || ""); // Note
+    sheet.getRange(rowIndex, 14).setValue(new Date().toISOString()); // UpdatedAt
     
     return ContentService.createTextOutput(JSON.stringify({ success: true }))
       .setMimeType(ContentService.MimeType.JSON);
@@ -124,12 +122,10 @@ CREATE TABLE IF NOT EXISTS guests (
   allowed_plus_one INTEGER DEFAULT 0,
   rsvp_submitted INTEGER DEFAULT 0,
   attending INTEGER,
-  meal_preference TEXT,
   dietary_restrictions TEXT,
   plus_one_attending INTEGER,
   plus_one_first_name TEXT,
   plus_one_last_name TEXT,
-  plus_one_meal_preference TEXT,
   plus_one_dietary_restrictions TEXT,
   message TEXT,
   updated_at TEXT
@@ -155,24 +151,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     UPDATE guests SET
       rsvp_submitted = 1,
       attending = ?,
-      meal_preference = ?,
       dietary_restrictions = ?,
       plus_one_attending = ?,
       plus_one_first_name = ?,
       plus_one_last_name = ?,
-      plus_one_meal_preference = ?,
       plus_one_dietary_restrictions = ?,
       message = ?,
       updated_at = datetime('now')
     WHERE code = ? OR id = ?
   `).bind(
     data.attending ? 1 : 0,
-    data.mealPreference || null,
     data.dietaryRestrictions || null,
     data.plusOne?.attending ? 1 : 0,
     data.plusOne?.firstName || null,
     data.plusOne?.lastName || null,
-    data.plusOne?.mealPreference || null,
     data.plusOne?.dietaryRestrictions || null,
     data.message || null,
     data.code,
@@ -219,11 +211,11 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
     partitionKey: "Wedding2027",
     rowKey: data.code.toUpperCase(),
     attending: data.attending,
-    mealPreference: data.mealPreference || "",
     dietaryRestrictions: data.dietaryRestrictions || "",
+    plusOneAttending: data.plusOne?.attending || false,
     plusOneFirstName: data.plusOne?.firstName || "",
     plusOneLastName: data.plusOne?.lastName || "",
-    plusOneMeal: data.plusOne?.mealPreference || "",
+    plusOneDietary: data.plusOne?.dietaryRestrictions || "",
     message: data.message || "",
     updatedAt: new Date().toISOString()
   };

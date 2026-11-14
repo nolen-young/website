@@ -102,7 +102,7 @@ function AdminDashboardContent() {
               Admin Security Passcode
             </h1>
             <p className="text-xs text-[#6B7C75] font-serif">
-              Please enter the passcode to access guest RSVPs, meal orders, and data downloads.
+              Please enter the passcode to access guest RSVPs, dietary notes, and data downloads.
             </p>
           </div>
 
@@ -162,17 +162,22 @@ function AdminDashboardContent() {
   const totalDeclinedCount = guests.filter((g) => g.rsvpSubmitted && !g.attending).length;
   const totalPendingCount = guests.filter((g) => !g.rsvpSubmitted).length;
 
-  // Meal breakdown
-  const mealCounts: Record<string, number> = {};
-  WEDDING_CONFIG.meals.forEach((m) => (mealCounts[m.id] = 0));
-
+  // Dietary restrictions list
+  const dietaryAlerts: { name: string; note: string }[] = [];
   guests.forEach((g) => {
     if (g.rsvpSubmitted && g.attending) {
-      if (g.mealPreference && mealCounts[g.mealPreference] !== undefined) {
-        mealCounts[g.mealPreference]++;
+      if (g.dietaryRestrictions && g.dietaryRestrictions.trim().toLowerCase() !== "none") {
+        dietaryAlerts.push({ name: `${g.firstName} ${g.lastName}`, note: g.dietaryRestrictions });
       }
-      if (g.plusOne?.attending && g.plusOne.mealPreference && mealCounts[g.plusOne.mealPreference] !== undefined) {
-        mealCounts[g.plusOne.mealPreference]++;
+      if (
+        g.plusOne?.attending &&
+        g.plusOne.dietaryRestrictions &&
+        g.plusOne.dietaryRestrictions.trim().toLowerCase() !== "none"
+      ) {
+        dietaryAlerts.push({
+          name: `${g.plusOne.firstName || g.firstName + "'s +1"} ${g.plusOne.lastName || ""}`.trim(),
+          note: g.plusOne.dietaryRestrictions,
+        });
       }
     }
   });
@@ -207,13 +212,11 @@ function AdminDashboardContent() {
       "Email",
       "Status",
       "Attending",
-      "Entree",
       "Dietary Notes",
       "Has +1",
       "+1 Attending",
       "+1 First Name",
       "+1 Last Name",
-      "+1 Entree",
       "+1 Dietary Notes",
       "Message",
       "Updated At",
@@ -226,13 +229,11 @@ function AdminDashboardContent() {
       g.email || "",
       g.rsvpSubmitted ? "Responded" : "Pending",
       g.attending ? "Yes" : g.rsvpSubmitted ? "No" : "",
-      g.mealPreference || "",
       `"${(g.dietaryRestrictions || "").replace(/"/g, '""')}"`,
       g.allowedPlusOne ? "Yes" : "No",
       g.plusOne?.attending ? "Yes" : "No",
       g.plusOne?.firstName || "",
       g.plusOne?.lastName || "",
-      g.plusOne?.mealPreference || "",
       `"${(g.plusOne?.dietaryRestrictions || "").replace(/"/g, '""')}"`,
       `"${(g.message || "").replace(/"/g, '""')}"`,
       g.updatedAt || "",
@@ -357,25 +358,34 @@ function AdminDashboardContent() {
           </div>
         </div>
 
-        {/* Meal Breakdown Summary */}
+        {/* Buffet Catering & Dietary Restrictions Summary */}
         <div className="bg-[#FFFFFF] border border-[#E2D9CE] rounded-3xl p-6 space-y-4 shadow-sm">
-          <div className="flex items-center space-x-2">
-            <Utensils className="w-5 h-5 text-[#C87A68]" />
-            <h3 className="font-serif font-bold text-xl text-[#1B3B2B]">
-              Catering Entrée Orders
-            </h3>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Utensils className="w-5 h-5 text-[#C87A68]" />
+              <h3 className="font-serif font-bold text-xl text-[#1B3B2B]">
+                Buffet Catering &amp; Dietary Restrictions ({dietaryAlerts.length})
+              </h3>
+            </div>
+            <span className="text-xs font-serif text-[#6B7C75]">
+              Total Buffet Headcount: <strong className="text-[#1B3B2B]">{totalAttendingHeadcount}</strong>
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {WEDDING_CONFIG.meals.map((m) => (
-              <div key={m.id} className="bg-[#FDFBF7] p-4 rounded-2xl border border-[#E2D9CE] space-y-1">
-                <p className="text-xs font-serif font-bold text-[#1B3B2B]">{m.name}</p>
-                <p className="text-2xl font-serif font-bold text-[#C87A68]">
-                  {mealCounts[m.id] || 0} <span className="text-xs font-sans text-[#6B7C75]">plates</span>
-                </p>
-              </div>
-            ))}
-          </div>
+          {dietaryAlerts.length === 0 ? (
+            <p className="text-xs text-[#6B7C75] italic font-serif">
+              No dietary restrictions or food allergies reported by attending guests yet.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {dietaryAlerts.map((item, idx) => (
+                <div key={idx} className="bg-[#FDFBF7] p-3.5 rounded-2xl border border-[#E2D9CE] space-y-1">
+                  <p className="text-xs font-serif font-bold text-[#1B3B2B]">{item.name}</p>
+                  <p className="text-xs text-[#C87A68] font-semibold">{item.note}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Guest List Table */}
@@ -424,9 +434,9 @@ function AdminDashboardContent() {
                   <th className="p-3.5 font-bold">Guest Name</th>
                   <th className="p-3.5 font-bold">Invite Code</th>
                   <th className="p-3.5 font-bold">Status</th>
-                  <th className="p-3.5 font-bold">Entrée</th>
                   <th className="p-3.5 font-bold">Plus-One (+1)</th>
-                  <th className="p-3.5 font-bold">Dietary / Notes</th>
+                  <th className="p-3.5 font-bold">Dietary Notes</th>
+                  <th className="p-3.5 font-bold">Message</th>
                   <th className="p-3.5 text-right font-bold">Link</th>
                 </tr>
               </thead>
@@ -452,11 +462,6 @@ function AdminDashboardContent() {
                         </span>
                       )}
                     </td>
-                    <td className="p-3.5 font-serif text-[#1B3B2B]">
-                      {g.attending && g.mealPreference
-                        ? WEDDING_CONFIG.meals.find((m) => m.id === g.mealPreference)?.name
-                        : "—"}
-                    </td>
                     <td className="p-3.5">
                       {g.allowedPlusOne ? (
                         g.plusOne?.attending ? (
@@ -464,9 +469,11 @@ function AdminDashboardContent() {
                             <span className="font-serif font-bold text-[#1B3B2B] block">
                               {g.plusOne.firstName} {g.plusOne.lastName}
                             </span>
-                            <span className="text-[10px] text-[#6B7C75] block">
-                              Meal: {g.plusOne.mealPreference}
-                            </span>
+                            {g.plusOne.dietaryRestrictions && (
+                              <span className="text-[10px] text-[#6B7C75] block">
+                                Dietary: {g.plusOne.dietaryRestrictions}
+                              </span>
+                            )}
                           </div>
                         ) : g.rsvpSubmitted ? (
                           <span className="text-[#6B7C75]">Not bringing +1</span>
@@ -478,7 +485,10 @@ function AdminDashboardContent() {
                       )}
                     </td>
                     <td className="p-3.5 text-[#2E3834] max-w-xs truncate">
-                      {g.dietaryRestrictions || g.message || "—"}
+                      {g.dietaryRestrictions || "—"}
+                    </td>
+                    <td className="p-3.5 text-[#2E3834] max-w-xs truncate">
+                      {g.message || "—"}
                     </td>
                     <td className="p-3.5 text-right">
                       <button

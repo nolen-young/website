@@ -39,13 +39,6 @@ export interface WeddingPartyMember {
   image: string;
 }
 
-export interface MealOption {
-  id: string;
-  name: string;
-  description: string;
-  tags: string[]; // e.g. ["GF", "Vegan", "Chef Choice"]
-}
-
 export const WEDDING_CONFIG = {
   couple: {
     groom: "Nolen",
@@ -116,7 +109,7 @@ export const WEDDING_CONFIG = {
       time: "Saturday, Oct 2 • 6:30 PM",
       title: "Dinner, Toasts & Dancing",
       location: "The Pavilion at Woodland Meadow Farms",
-      description: "Plated farm-to-table dinner, wedding cake, heartfelt toasts, and dancing until late!",
+      description: "Buffet-style farm-to-table dinner, wedding cake, heartfelt toasts, and dancing until late!",
       attire: "Formal",
     },
     {
@@ -128,33 +121,6 @@ export const WEDDING_CONFIG = {
       attire: "Casual",
     },
   ] as ScheduleItem[],
-
-  meals: [
-    {
-      id: "filet",
-      name: "Herb-Crusted Filet Mignon",
-      description: "Prime beef tenderloin served with truffle mashed potatoes, roasted asparagus, and red wine reduction.",
-      tags: ["GF"],
-    },
-    {
-      id: "salmon",
-      name: "Wild Pacific Salmon",
-      description: "Pan-seared Atlantic salmon with lemon dill butter, wild rice pilaf, and charred broccolini.",
-      tags: ["GF"],
-    },
-    {
-      id: "risotto",
-      name: "Wild Mushroom & Truffle Risotto",
-      description: "Creamy arborio rice with roasted chanterelles, fresh herbs, and parmesan reggiano.",
-      tags: ["Vegetarian", "GF Available"],
-    },
-    {
-      id: "chicken",
-      name: "Rosemary Roasted Chicken Breast",
-      description: "Farm-raised chicken with garlic herb glaze, roasted fingerling potatoes, and seasonal root vegetables.",
-      tags: ["GF"],
-    },
-  ] as MealOption[],
 
   funFacts: [
     {
@@ -270,7 +236,7 @@ export const WEDDING_CONFIG = {
     },
     {
       question: "What should I do if I have dietary restrictions?",
-      answer: "You can select your meal preference and list any dietary restrictions, food allergies, or vegan/gluten-free requirements directly during your RSVP flow on this website!",
+      answer: "Dinner will be served buffet-style with a variety of options! You can list any dietary restrictions, food allergies, or vegan/gluten-free requirements directly during your RSVP flow on this website so our catering team can accommodate you.",
       category: "rsvp",
     },
   ] as FaqItem[],

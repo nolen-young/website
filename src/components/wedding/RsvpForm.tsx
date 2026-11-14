@@ -33,7 +33,7 @@ interface RsvpFormProps {
 }
 
 export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProps) {
-  // Step State: 1 = Lookup, 2 = Primary Attendance & Meal, 3 = +1 Guest Details, 4 = Note to Couple, 5 = Confirmation
+  // Step State: 1 = Lookup, 2 = Primary Attendance, 3 = +1 Guest Details, 4 = Note to Couple, 5 = Confirmation
   const [step, setStep] = useState<number>(1);
   const [nameQuery, setNameQuery] = useState<string>(initialName || "");
   const [codeQuery, setCodeQuery] = useState<string>(initialCode || "");
@@ -43,14 +43,12 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
 
   // Primary Guest Form Fields
   const [attending, setAttending] = useState<boolean>(true);
-  const [mealPreference, setMealPreference] = useState<string>(WEDDING_CONFIG.meals[0].id);
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string>("");
 
   // +1 Guest Form Fields
   const [bringingPlusOne, setBringingPlusOne] = useState<boolean>(true);
   const [plusOneFirstName, setPlusOneFirstName] = useState<string>("");
   const [plusOneLastName, setPlusOneLastName] = useState<string>("");
-  const [plusOneMeal, setPlusOneMeal] = useState<string>(WEDDING_CONFIG.meals[0].id);
   const [plusOneDietary, setPlusOneDietary] = useState<string>("");
 
   // Note to Couple
@@ -80,14 +78,12 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
 
     if (guest.rsvpSubmitted) {
       setAttending(guest.attending ?? true);
-      setMealPreference(guest.mealPreference || WEDDING_CONFIG.meals[0].id);
       setDietaryRestrictions(guest.dietaryRestrictions || "");
       if (guest.allowedPlusOne) {
         if (guest.plusOne) {
           setBringingPlusOne(guest.plusOne.attending);
           setPlusOneFirstName(guest.plusOne.firstName || "");
           setPlusOneLastName(guest.plusOne.lastName || "");
-          setPlusOneMeal(guest.plusOne.mealPreference || WEDDING_CONFIG.meals[0].id);
           setPlusOneDietary(guest.plusOne.dietaryRestrictions || "");
         } else {
           setBringingPlusOne(true);
@@ -97,13 +93,11 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
       setStep(5);
     } else {
       setAttending(true);
-      setMealPreference(WEDDING_CONFIG.meals[0].id);
       setDietaryRestrictions("");
       if (guest.allowedPlusOne) {
         setBringingPlusOne(true);
         setPlusOneFirstName("");
         setPlusOneLastName("");
-        setPlusOneMeal(WEDDING_CONFIG.meals[0].id);
         setPlusOneDietary("");
       } else {
         setBringingPlusOne(false);
@@ -176,7 +170,6 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
 
     const payload: RsvpPayload = {
       attending,
-      mealPreference: attending ? mealPreference : undefined,
       dietaryRestrictions: attending ? dietaryRestrictions : undefined,
       plusOne:
         selectedGuest.allowedPlusOne && bringingPlusOne
@@ -184,7 +177,6 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
               attending: true,
               firstName: plusOneFirstName,
               lastName: plusOneLastName,
-              mealPreference: plusOneMeal,
               dietaryRestrictions: plusOneDietary,
             }
           : selectedGuest.allowedPlusOne
@@ -397,7 +389,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
         </div>
       )}
 
-      {/* STEP 2: PRIMARY GUEST ATTENDANCE & MEAL PREFERENCE */}
+      {/* STEP 2: PRIMARY GUEST ATTENDANCE & DIETARY NOTES */}
       {step === 2 && selectedGuest && (
         <div className="space-y-6">
           <div className="text-center space-y-1">
@@ -419,7 +411,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
               <div>
                 <strong className="font-serif font-bold text-[#1B3B2B]">Your invitation includes a Plus One (+1)!</strong>
                 <p className="text-[#2E3834] text-xs mt-0.5">
-                  You will be prompted to enter your guest&apos;s name and dinner selection in the next step.
+                  You will be prompted to enter your guest&apos;s details in the next step.
                 </p>
               </div>
             </div>
@@ -476,62 +468,23 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
             </button>
           </div>
 
-          {/* Meal Selection for Primary Guest */}
+          {/* Dietary Restrictions for Primary Guest */}
           {attending && (
             <div className="space-y-4 pt-4 border-t border-[#E2D9CE]">
               <div className="flex items-center space-x-2">
                 <Utensils className="w-4 h-4 text-[#C87A68]" />
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-[#1B3B2B]">
-                  Select Entrée Choice for {selectedGuest.firstName}
+                  Buffet Dinner &amp; Dietary Notes
                 </h4>
               </div>
-
-              <div className="space-y-3">
-                {WEDDING_CONFIG.meals.map((meal) => (
-                  <label
-                    key={meal.id}
-                    className={`block p-4 rounded-2xl border transition-all cursor-pointer ${
-                      mealPreference === meal.id
-                        ? "border-[#1B3B2B] bg-[#EBF2ED] text-[#1B3B2B] shadow-sm"
-                        : "border-[#E2D9CE] bg-[#FDFBF7] text-[#2E3834] hover:bg-[#F4EFEA]"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="radio"
-                          name="meal"
-                          value={meal.id}
-                          checked={mealPreference === meal.id}
-                          onChange={() => setMealPreference(meal.id)}
-                          className="w-4 h-4 text-[#1B3B2B] focus:ring-[#1B3B2B]"
-                        />
-                        <span className="font-serif font-bold text-[#1B3B2B] text-base">
-                          {meal.name}
-                        </span>
-                      </div>
-                      <div className="flex gap-1">
-                        {meal.tags.map((t) => (
-                          <span
-                            key={t}
-                            className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[#F4EFEA] text-[#C87A68] border border-[#E2D9CE]"
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-xs text-[#2E3834] mt-2 pl-7 leading-relaxed font-sans">
-                      {meal.description}
-                    </p>
-                  </label>
-                ))}
-              </div>
+              <p className="text-xs text-[#6B7C75] font-serif">
+                Dinner will be served buffet-style with a variety of dishes. Please let us know if {selectedGuest.firstName} has any dietary restrictions or food allergies.
+              </p>
 
               {/* Dietary Restrictions */}
-              <div className="space-y-2 pt-2">
+              <div className="space-y-2">
                 <label className="block text-xs font-semibold text-[#1B3B2B]">
-                  Dietary Restrictions or Allergies for {selectedGuest.firstName}:
+                  Dietary Restrictions or Allergies for {selectedGuest.firstName} (optional):
                 </label>
                 <input
                   type="text"
@@ -612,7 +565,7 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
               <div className="flex items-center space-x-2 text-[#C87A68]">
                 <UserPlus className="w-4 h-4" />
                 <h4 className="text-xs font-semibold uppercase tracking-wider">
-                  Guest (+1) Personal &amp; Dinner Selection
+                  Guest (+1) Details
                 </h4>
               </div>
 
@@ -641,43 +594,10 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
                 </div>
               </div>
 
-              {/* Meal Selection for +1 */}
-              <div className="space-y-3 pt-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#1B3B2B]">
-                  Select Entrée Choice for Guest (+1)
-                </label>
-                {WEDDING_CONFIG.meals.map((meal) => (
-                  <label
-                    key={`plusone-${meal.id}`}
-                    className={`block p-3.5 rounded-2xl border transition-all cursor-pointer ${
-                      plusOneMeal === meal.id
-                        ? "border-[#1B3B2B] bg-[#EBF2ED] text-[#1B3B2B]"
-                        : "border-[#E2D9CE] bg-[#FDFBF7] text-[#2E3834] hover:bg-[#F4EFEA]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="radio"
-                          name="plusone-meal"
-                          value={meal.id}
-                          checked={plusOneMeal === meal.id}
-                          onChange={() => setPlusOneMeal(meal.id)}
-                          className="w-4 h-4 text-[#1B3B2B] focus:ring-[#1B3B2B]"
-                        />
-                        <span className="font-serif font-bold text-[#1B3B2B] text-base">
-                          {meal.name}
-                        </span>
-                      </div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-
               {/* Plus one dietary */}
-              <div className="space-y-2">
+              <div className="space-y-2 pt-2">
                 <label className="block text-xs font-semibold text-[#1B3B2B]">
-                  Dietary Restrictions for Guest (+1):
+                  Dietary Restrictions or Allergies for Guest (+1) (optional):
                 </label>
                 <input
                   type="text"
@@ -820,19 +740,11 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
                       Attending
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 pt-1">
-                    <div>
-                      <span className="text-[#6B7C75] block text-[11px] font-serif">Entrée Selection</span>
-                      <span className="font-bold text-[#1B3B2B] font-serif">
-                        {WEDDING_CONFIG.meals.find((m) => m.id === selectedGuest.mealPreference)?.name || "Selected"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[#6B7C75] block text-[11px] font-serif">Dietary Notes</span>
-                      <span className="font-semibold text-[#2E3834]">
-                        {selectedGuest.dietaryRestrictions || "None"}
-                      </span>
-                    </div>
+                  <div className="pt-1">
+                    <span className="text-[#6B7C75] block text-[11px] font-serif">Dietary Notes</span>
+                    <span className="font-semibold text-[#2E3834]">
+                      {selectedGuest.dietaryRestrictions || "None"}
+                    </span>
                   </div>
                 </div>
 
@@ -857,19 +769,11 @@ export function RsvpForm({ initialCode, initialName, onSubmitted }: RsvpFormProp
                     </div>
 
                     {selectedGuest.plusOne?.attending ? (
-                      <div className="grid grid-cols-2 gap-4 pt-1">
-                        <div>
-                          <span className="text-[#6B7C75] block text-[11px] font-serif">Entrée Selection</span>
-                          <span className="font-bold text-[#1B3B2B] font-serif">
-                            {WEDDING_CONFIG.meals.find((m) => m.id === selectedGuest.plusOne?.mealPreference)?.name || "Selected"}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-[#6B7C75] block text-[11px] font-serif">Dietary Notes</span>
-                          <span className="font-semibold text-[#2E3834]">
-                            {selectedGuest.plusOne?.dietaryRestrictions || "None"}
-                          </span>
-                        </div>
+                      <div className="pt-1">
+                        <span className="text-[#6B7C75] block text-[11px] font-serif">Dietary Notes</span>
+                        <span className="font-semibold text-[#2E3834]">
+                          {selectedGuest.plusOne?.dietaryRestrictions || "None"}
+                        </span>
                       </div>
                     ) : (
                       <p className="text-xs text-[#6B7C75] italic pt-1">

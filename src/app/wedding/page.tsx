@@ -39,7 +39,7 @@ export default function WeddingPage() {
                   Kindly Respond By August 15, 2027
                 </h2>
                 <p className="text-[#2E3834] font-serif italic text-base sm:text-lg max-w-xl mx-auto">
-                  Search your name or enter your personalized invitation code to submit your RSVP and dinner preference.
+                  Search your name or enter your personalized invitation code to submit your RSVP.
                 </p>
                 <div className="flex items-center justify-center space-x-3 text-[#E2D9CE] pt-2">
                   <span className="h-[1px] w-12 bg-[#E2D9CE]" />
