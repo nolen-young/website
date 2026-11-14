@@ -79,7 +79,7 @@ function parseBool(val) {
   return s === "true" || s === "yes" || s === "1";
 }
 
-function rowToGuest(row, rowIndex) {
+function rowToGuest(row, rowIndex, includePrivateFields) {
   const code = String(row[0] || "").trim();
   const firstName = String(row[1] || "").trim();
   const lastName = String(row[2] || "").trim();
@@ -104,7 +104,8 @@ function rowToGuest(row, rowIndex) {
     code: code,
     firstName: firstName,
     lastName: lastName,
-    email: email || undefined,
+    // Only include email/private contact fields when requested by Admin Dashboard
+    email: includePrivateFields ? (email || undefined) : undefined,
     allowedPlusOne: allowedPlusOne,
     maxPlusOnes: allowedPlusOne ? 1 : 0,
     rsvpSubmitted: rsvpSubmitted,
@@ -125,13 +126,13 @@ function rowToGuest(row, rowIndex) {
   return guest;
 }
 
-function getAllGuestsFromSheet(sheet) {
+function getAllGuestsFromSheet(sheet, includePrivateFields) {
   const data = sheet.getDataRange().getValues();
   const guests = [];
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     if (!row[0] && !row[1] && !row[2]) continue; // Skip blank rows
-    guests.push(rowToGuest(row, i + 1));
+    guests.push(rowToGuest(row, i + 1, Boolean(includePrivateFields)));
   }
   return guests;
 }
@@ -220,13 +221,13 @@ function doPost(e) {
 
     // 3. Admin Dashboard Full Guest List
     if (action === "admin_list") {
-      const guests = getAllGuestsFromSheet(sheet);
+      const guests = getAllGuestsFromSheet(sheet, true);
       return jsonResponse({ success: true, guests: guests });
     }
 
     // 3b. Add a New Guest from Admin Dashboard
     if (action === "add_guest") {
-      const guests = getAllGuestsFromSheet(sheet);
+      const guests = getAllGuestsFromSheet(sheet, true);
       const firstName = String(data.firstName || "").trim();
       const lastName = String(data.lastName || "").trim();
       const email = String(data.email || "").trim();
@@ -267,7 +268,7 @@ function doPost(e) {
       sheet.appendRow(newRow);
       SpreadsheetApp.flush();
 
-      const updatedGuests = getAllGuestsFromSheet(sheet);
+      const updatedGuests = getAllGuestsFromSheet(sheet, true);
       const createdGuest = updatedGuests.find((g) => g.code.toUpperCase() === code) || null;
       return jsonResponse({ success: true, guest: createdGuest, guests: updatedGuests });
     }

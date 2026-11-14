@@ -123,15 +123,29 @@ export const onRequest = async (context: {
         secret: webhookSecret,
       };
 
-      const googleRes = await fetch(scriptUrl, {
+      // Note: Google Apps Script returns a 302 redirect to script.googleusercontent.com/macros/echo.
+      // Cloudflare Workers fetch() preserves the POST method across 302 redirects if redirect: "follow"
+      // is used, which Google rejects with an HTML 405 error page.
+      // By handling the 302 redirect manually and switching to GET on the Location URL,
+      // we reliably receive the JSON output from Google Apps Script!
+      let googleRes = await fetch(scriptUrl, {
         method: "POST",
         headers: {
-          // Use text/plain to avoid CORS preflight issues with Google Apps Script redirects
           "Content-Type": "text/plain;charset=utf-8",
         },
         body: JSON.stringify(payloadToSend),
-        redirect: "follow",
+        redirect: "manual",
       });
+
+      if (googleRes.status === 301 || googleRes.status === 302 || googleRes.status === 303 || googleRes.status === 307 || googleRes.status === 308) {
+        const redirectUrl = googleRes.headers.get("location");
+        if (redirectUrl) {
+          googleRes = await fetch(redirectUrl, {
+            method: "GET",
+            redirect: "follow",
+          });
+        }
+      }
 
       const responseText = await googleRes.text();
       try {
